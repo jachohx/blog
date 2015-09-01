@@ -1015,7 +1015,7 @@ p.v-my-face { padding-bottom: 0; margin: 0 auto 10px auto; text-align: right}
 .DlHighlight .css-end { color: #d8d8d8; }
 
 /** entry special **/
-.v-entry .title {
+.v-entry .title,.v-entry .title a {
     margin-bottom: 10px;
     font-family: "Times New Roman",Times,serif;
     padding: 0 0;
@@ -1025,6 +1025,7 @@ p.v-my-face { padding-bottom: 0; margin: 0 auto 10px auto; text-align: right}
     color: #e18b3a;
     text-align: center;
 }
+.v-entry a:hover{text-decoration: none;}
 .v-entry .meta {
     text-align: center;
     color: #a0a0a0;
@@ -1071,6 +1072,10 @@ p.v-my-face { padding-bottom: 0; margin: 0 auto 10px auto; text-align: right}
     border: 1px solid #e8e8e8;
     box-shadow: 0 0 4px #d0d0d0;
 }
+
+.more{text-align: right;}
+.more a{color: #555;}
+.more a:hover{text-decoration: none;color: #555;}
 
 .v-pagination {
     height: 28px;

@@ -37,7 +37,7 @@
 		</form>
 		<div class="social right">
 			<a class="facebook" href="http://facebook.com/jachohx" title="Facebook">Facebook</a>
-			<a class="google" href="https://plus.google.com/" title="Google+">Google+</a>
+			<a class="google" href="https://plus.google.com" title="Google+">Google+</a>
 			<a class="twitter" href="http://" title="Twitter">Twitter</a>
 			<a class="github" href="https://" title="GitHub">GitHub</a>
 			<a class="rss" href="http://http://feeds.feedburner.com/jachohx" title="RSS">RSS</a>
@@ -45,19 +45,99 @@
 	</div>
 
 	</header>
-    <h2>我的Blog</h2>
-<p>最新文章</p>
-<ul>
-　　
-　　　<li>07 Mar 2013 <a href="/post/eclipse-maven.html">Eclipse下将项目增加maven配置</a></li>
-　　
-　　　<li>06 Feb 2013 <a href="/post/jekyll-rsync.html">用vps写jekyll</a></li>
-　　
-　　　<li>16 Nov 2012 <a href="/post/Integer.html">Integer的自动装箱与拆箱</a></li>
-　　
-　　　<li>11 Oct 2012 <a href="/post/github-pages.html">使用Github Pages建独立博客</a></li>
-　　
-</ul>
+    <section class="content fn-clear" id="i-am-top">
+        <div class="content-cnt">
+        <div class="ui-grid-25 ui-grid-right content-top">
+            <section class="ui-grid-23 violet-post">
+                <div class="violet-post-det fn-clear">
+                    <div class="ui-grid-15 v-post-detail">
+						
+                        <div class="v-entry">
+                            <h1 class="title" style="text-align: left; border-bottom: 1px solid #f0f0f0;"><a href="/post/syntax.html">Markdown语法说明</a></h1>
+                            <h1>Markdown 文件</h1>
+
+<p><img src="http://markdown.tw/images/208x128.png" alt="Markdown" /></p>
+
+<p><strong>NOTE:</strong> This is Traditional Chinese Edition Document of
+Markdown Syntax. If you are seeking for English Edition
+Document. Please refer to <a href="http://daringfireball.net/projects/markdown/syntax">Markdown: Syntax</a>.</p>
+
+<p>  
+                        <p class="more"><a href="/post/syntax.html">更多</a></p>
+						</div>
+						
+						
+                        <div class="v-entry">
+                            <h1 class="title" style="text-align: left; border-bottom: 1px solid #f0f0f0;"><a href="/post/eclipse-maven.html">Eclipse下将项目增加maven配置</a></h1>
+                            <p>最近的项目开始使用maven做托管，于是开始熟悉maven环境，安装，配置那些就不用多说了，直接用eclipse默认的就OK了。</p>
+
+<p>关键在于，有时新建的项目不能导入maven的依赖包，虽然maven可以compile，但源代码会有报错。</p>
+
+<p>出现红叉看起来很是不错。</p>
+
+<p>于是开始研究一些可以自动导入maven包的项目。</p>
+
+
+                        <p class="more"><a href="/post/eclipse-maven.html">更多</a></p>
+						</div>
+						
+						
+                        <div class="v-entry">
+                            <h1 class="title" style="text-align: left; border-bottom: 1px solid #f0f0f0;"><a href="/post/jekyll-rsync.html">用vps写jekyll</a></h1>
+                            <p>用github写博客，把_post下的文件放到github上，用它的jekyll来生成静态文件，不过有一个问题，它的jekyll版本可能跟我的不一样，别人也有遇到这样的情况。</p>
+
+<p>所以自己生成静态文件，再放到github上会更佳。</p>
+
+<p>在Windows在要搭jekyll，安装起来真的很麻烦，各种折腾。</p>
+
+<p>现在md的语法熟悉了之后，就没有必要蛋痛地在本地搭jekyll。</p>
+
+<p>于是在VPS上搭了一个jekyll环境，然后只需要把源文件同步到vps上就可以了。</p>
+
+<p>在Windows下用rsync这个工具可以还是不错的。</p>
+
+
+                        <p class="more"><a href="/post/jekyll-rsync.html">更多</a></p>
+						</div>
+						
+						
+                        <div class="v-entry">
+                            <h1 class="title" style="text-align: left; border-bottom: 1px solid #f0f0f0;"><a href="/post/Integer.html">Integer的自动装箱与拆箱</a></h1>
+                            <p>最近看到一行代码</p>
+
+<pre><code>map.put(key, Integer.valueOf("1"));
+</code></pre>
+
+<p>Map是HashMap&lt;String, Integer>();</p>
+
+<p>首先这行代码效率肯定是很低的，1是数字，然后转成了字符，再转成数字。</p>
+
+<p>首先，既然是数字，那么就没有必要用“1”了，直接Integer.valueOf(1)就可以了。</p>
+
+<p>最简单的写法是1。</p>
+
+<p>但考虑到自动装箱boxing 是在JDK1.5后才有的，所以1.4还是要用new Integer(1)或Integer(1)。</p>
+
+
+                        <p class="more"><a href="/post/Integer.html">更多</a></p>
+						</div>
+						
+						
+                        <div class="v-entry">
+                            <h1 class="title" style="text-align: left; border-bottom: 1px solid #f0f0f0;"><a href="/post/github-pages.html">使用Github Pages建独立博客</a></h1>
+                            <p><a href="http://github.com" title="Github">Github</a>很好的将代码和社区联系在了一起，于是发生了很多有趣的事情，世界也因为他美好了一点点。Github作为现在最流行的代码仓库，已经得到很多大公司和项目的青睐，比如<a href="https://github.com/jquery/jquery" title="jQuery@github">jQuery</a>、<a href="https://github.com/twitter/bootstrap" title="Twitter@github">Twitter</a>等。为使项目更方便的被人理解，介绍页面少不了，甚至会需要完整的文档站，Github替你想到了这一点，他提供了<a href="http://pages.github.com/" title="Github Pages">Github Pages</a>的服务，不仅可以方便的为项目建立介绍站点，也可以用来建立个人博客。</p>
+
+
+                        <p class="more"><a href="/post/github-pages.html">更多</a></p>
+						</div>
+						
+						
+                    </div>                   
+                </div>
+            </section><!-- //violet-post -->
+        </div>
+        </div>
+    </section><!-- //content -->
     <a class="v-fork-me" href="https://github.com/jachohx" target="_blank" rel="nofollow">
         <img src="/images/forkme.png" alt="Fork me on GitHub">
     </a>
