@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="/css/violet.css" type="text/css" />
     <link rel="alternate" type="application/atom+xml" title="Recent Entries" href="http://feeds.feedburner.com/jachohx" />
     <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+    <link href="/css/pygments.css" rel="stylesheet">
     <script type="text/javascript">
 
   var _gaq = _gaq || [];
@@ -78,12 +79,10 @@
 
 <!--more-->
 
-
 <h2>.project 增加maven项目</h2>
 
 <p>项目的配置文件.project 在<projectDescription>下的配置如下：</p>
-
-<pre><code>&lt;buildSpec&gt;
+<div class="highlight"><pre><code class="language-text" data-lang="text">&lt;buildSpec&gt;
     &lt;buildCommand&gt;
         &lt;name&gt;org.eclipse.jdt.core.javabuilder&lt;/name&gt;
         &lt;arguments&gt;
@@ -99,8 +98,7 @@
     &lt;nature&gt;org.eclipse.jdt.core.javanature&lt;/nature&gt;
     &lt;nature&gt;org.eclipse.m2e.core.maven2Nature&lt;/nature&gt;
 &lt;/natures&gt;
-</code></pre>
-
+</code></pre></div>
 <p>只要buildSpec，natures下加入m2e的那两段代码就可以了。</p>
 
 <p>在.project下增加了那两段代码后，项目及pom.xml可以右键run maven。</p>
@@ -110,14 +108,12 @@
 <h2>.classpath 增加maven 的依赖</h2>
 
 <p>而.classpath下多了这几行代码：</p>
-
-<pre><code>&lt;classpathentry kind="con" path="org.eclipse.m2e.MAVEN2_CLASSPATH_CONTAINER"&gt;
+<div class="highlight"><pre><code class="language-text" data-lang="text">&lt;classpathentry kind=&quot;con&quot; path=&quot;org.eclipse.m2e.MAVEN2_CLASSPATH_CONTAINER&quot;&gt;
     &lt;attributes&gt;
-        &lt;attribute name="maven.pomderived" value="true"/&gt;
+        &lt;attribute name=&quot;maven.pomderived&quot; value=&quot;true&quot;/&gt;
     &lt;/attributes&gt;
 &lt;/classpathentry&gt;
-</code></pre>
-
+</code></pre></div>
 <p>只要把以上的代码加入到<classpath>下就可以了。maven的包依赖就会导入了。</p>
 
 <p>好了，只要在这两个配置文件里增加了了maven配置，整个maven就可以用了。</p>

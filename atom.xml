@@ -5,8 +5,248 @@
     <link href="http://blog.jachohx.com/"/>
     <link href="http://blog.jachohx.com/atom.xml" rel="self"/>
     <id>http://blog.jachohx.com/</id>
-    <updated>2015-09-02T00:29:15+08:00</updated>
+    <updated>2016-02-17T16:09:53+08:00</updated>
 
+    
+        <entry>
+            <id>http://blog.jachohx.com/post/facede</id>
+            <title>Facade类分析</title>
+            <link href="http://qixinglu.com/post/facede.html"/>
+            <updated>2016-02-01T00:00:00+08:00</updated>
+            <author>
+                <name>muzuiget</name>
+            </author>
+            <content type="html">&lt;p&gt;Facade类在文档中的介绍是这样说的&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;Facades 提供一个静态接口给在应用程序的 &lt;a href=&quot;http://laravel-china.org/docs/5.0/container&quot;&gt;服务容器&lt;/a&gt; 中可以取用的类。Laravel 附带许多 facades，甚至你可能已经在不知情的状况下使用过它们！Laravel 的「facades」作为在 IoC 容器里面的基础类的静态代理，提供的语法有简洁、易表达的优点，同时维持比传统的静态方法更高的可测试性和弹性。&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;说明可以查看&lt;a href=&quot;http://laravel-china.org/docs/5.0/facades&quot;&gt;官方文档地址&lt;/a&gt;。&lt;/p&gt;
+
+&lt;p&gt;但在官方文档里只说Facade是怎么使用，并没有说明这个类是运行情况。&lt;/p&gt;
+
+&lt;!--more--&gt;
+
+&lt;p&gt;下边就介绍下Facade的工作过程：&lt;/p&gt;
+
+&lt;h2&gt;新的Facade类&lt;/h2&gt;
+
+&lt;p&gt;在官方文档里已经有介绍了，下边以DB类为例子。&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-php&quot; data-lang=&quot;php&quot;&gt;&lt;span class=&quot;cp&quot;&gt;&amp;lt;?php&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;namespace&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;Illuminate\Support\Facades&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;sd&quot;&gt;/**&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;     * @see \Illuminate\Database\DatabaseManager&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;     *@see \Illuminate\Database\Connection&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;     */&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;DB&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;extends&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;Facade&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;sd&quot;&gt;/**&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;         *Get the registered name of the component.&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;         *&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;         *@return string&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;         */&lt;/span&gt;
+      &lt;span class=&quot;k&quot;&gt;protected&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;static&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;getFacadeAccessor&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+      &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;db&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;这里实现了Facade的getFacadeAccessor方法，这个方法的工作是返回服务容器绑定的名称。&lt;/p&gt;
+
+&lt;p&gt;那么有一个疑问就是，DB类是怎么通过&amp;#39;db&amp;#39;取出来的。&lt;/p&gt;
+
+&lt;h2&gt;静态方法加载&lt;/h2&gt;
+
+&lt;p&gt;像DB类，我们这样使用DB::select(…)，面DB类里根本就没有select这个静态方法。&lt;/p&gt;
+
+&lt;p&gt;根据PHP这个语言特色，DB::select最终会调用Facade类的__callStatic方法&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-php&quot; data-lang=&quot;php&quot;&gt;&lt;span class=&quot;cp&quot;&gt;&amp;lt;?php&lt;/span&gt;
+    &lt;span class=&quot;sd&quot;&gt;/**&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;     * Get the root object behind the facade.&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;     *&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;     * @return mixed&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;     */&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;static&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;getFacadeRoot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;static&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;resolveFacadeInstance&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;static&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getFacadeAccessor&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;());&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;sd&quot;&gt;/**&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;     * Resolve the facade root instance from the container.&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;     *&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;     * @param  string|object  $name&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;     * @return mixed&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;     */&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;protected&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;static&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;resolveFacadeInstance&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;is_object&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;isset&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;static&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$resolvedInstance&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]))&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;static&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$resolvedInstance&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;static&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$resolvedInstance&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;static&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$app&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;sd&quot;&gt;/**&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;     * Handle dynamic, static calls to the object.&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;     *&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;     * @param  string  $method&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;     * @param  array   $args&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;     * @return mixed&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;     */&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;static&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;__callStatic&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$method&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$args&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;nv&quot;&gt;$instance&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;static&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getFacadeRoot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;();&lt;/span&gt;
+
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;!&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$instance&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;throw&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;RuntimeException&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;A facade root has not been set.&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+        &lt;span class=&quot;k&quot;&gt;switch&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;count&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$args&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;
+                &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$instance&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$method&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;();&lt;/span&gt;
+
+            &lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;
+                &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$instance&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$method&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$args&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]);&lt;/span&gt;
+
+            &lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;
+                &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$instance&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$method&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$args&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$args&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]);&lt;/span&gt;
+
+            &lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;
+                &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$instance&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$method&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$args&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$args&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$args&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]);&lt;/span&gt;
+
+            &lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;
+                &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$instance&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$method&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$args&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$args&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$args&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$args&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]);&lt;/span&gt;
+
+            &lt;span class=&quot;k&quot;&gt;default&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;
+                &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;call_user_func_array&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;([&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$instance&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$method&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$args&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;从这个方法就可以知道，最开始的时候会先调用getFacadeRoot方法知道，返回的容易最终于还是通过static::$app[$name];返回&lt;/p&gt;
+
+&lt;h2&gt;Facade的$app参数&lt;/h2&gt;
+
+&lt;p&gt;在Facade并没有加载$app参数的过程，只有一个set的方法&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-php&quot; data-lang=&quot;php&quot;&gt;&lt;span class=&quot;cp&quot;&gt;&amp;lt;?php&lt;/span&gt;
+    &lt;span class=&quot;sd&quot;&gt;/**&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;     * Set the application instance.&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;     *&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;     * @param  \Illuminate\Contracts\Foundation\Application  $app&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;     * @return void&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;     */&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;static&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;setFacadeApplication&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$app&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;static&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$app&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$app&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;这个setFacadeApplication方法是在类 Illuminate\Foundation\Bootstrap\RegisterFacades方法 bootstrap(Application $app)设置&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-php&quot; data-lang=&quot;php&quot;&gt;&lt;span class=&quot;cp&quot;&gt;&amp;lt;?php&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;namespace&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;Illuminate\Foundation\Bootstrap&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;use&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;Illuminate\Support\Facades\Facade&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;use&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;Illuminate\Foundation\AliasLoader&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;use&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;Illuminate\Contracts\Foundation\Application&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;RegisterFacades&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;sd&quot;&gt;/**&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;     * Bootstrap the given application.&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;     *&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;     * @param  \Illuminate\Contracts\Foundation\Application  $app&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;     * @return void&lt;/span&gt;
+&lt;span class=&quot;sd&quot;&gt;     */&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;bootstrap&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;Application&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$app&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;nx&quot;&gt;Facade&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;clearResolvedInstances&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;();&lt;/span&gt;
+
+        &lt;span class=&quot;nx&quot;&gt;Facade&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;setFacadeApplication&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$app&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+
+        &lt;span class=&quot;nx&quot;&gt;AliasLoader&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getInstance&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$app&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;make&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;config&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;get&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;app.aliases&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;register&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;();&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;页RegisterFacades类载见配置vendor/composer/autoload_classmap.php&lt;/p&gt;
+
+&lt;h2&gt;$app的db加载&lt;/h2&gt;
+
+&lt;p&gt;到了这里，$app设置完了，那么，$app里的db参数是什么时候设置的呢？&lt;/p&gt;
+
+&lt;p&gt;$app参数是Illuminate\Foundation\Application类，类有一个构造函数&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-php&quot; data-lang=&quot;php&quot;&gt;&lt;span class=&quot;cp&quot;&gt;&amp;lt;?php&lt;/span&gt; 
+    &lt;span class=&quot;k&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;__construct&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$basePath&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;nv&quot;&gt;$this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;registerBaseBindings&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;();&lt;/span&gt;
+
+        &lt;span class=&quot;nv&quot;&gt;$this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;registerBaseServiceProviders&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;();&lt;/span&gt;
+
+        &lt;span class=&quot;nv&quot;&gt;$this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;registerCoreContainerAliases&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;();&lt;/span&gt;
+
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$basePath&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;nv&quot;&gt;$this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;setBasePath&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$basePath&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;registerCoreContainerAliases&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;nv&quot;&gt;$aliases&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;&amp;#39;app&amp;#39;&lt;/span&gt;                  &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Foundation\Application&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Contracts\Container\Container&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Contracts\Foundation\Application&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;&amp;#39;auth&amp;#39;&lt;/span&gt;                 &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Auth\AuthManager&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Contracts\Auth\Factory&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;&amp;#39;auth.driver&amp;#39;&lt;/span&gt;          &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Contracts\Auth\Guard&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;&amp;#39;auth.password&amp;#39;&lt;/span&gt;        &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Contracts\Auth\PasswordBrokerFactory&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;&amp;#39;auth.password.broker&amp;#39;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Contracts\Auth\PasswordBroker&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;&amp;#39;blade.compiler&amp;#39;&lt;/span&gt;       &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\View\Compilers\BladeCompiler&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;&amp;#39;cache&amp;#39;&lt;/span&gt;                &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Cache\CacheManager&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Contracts\Cache\Factory&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;&amp;#39;cache.store&amp;#39;&lt;/span&gt;          &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Cache\Repository&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Contracts\Cache\Repository&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;&amp;#39;config&amp;#39;&lt;/span&gt;               &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Config\Repository&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Contracts\Config\Repository&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;&amp;#39;cookie&amp;#39;&lt;/span&gt;               &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Cookie\CookieJar&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Contracts\Cookie\Factory&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Contracts\Cookie\QueueingFactory&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;&amp;#39;encrypter&amp;#39;&lt;/span&gt;            &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Encryption\Encrypter&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Contracts\Encryption\Encrypter&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;&amp;#39;db&amp;#39;&lt;/span&gt;                   &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Database\DatabaseManager&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;&amp;#39;db.connection&amp;#39;&lt;/span&gt;        &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Database\Connection&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Database\ConnectionInterface&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;&amp;#39;events&amp;#39;&lt;/span&gt;               &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Events\Dispatcher&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Contracts\Events\Dispatcher&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;&amp;#39;files&amp;#39;&lt;/span&gt;                &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Filesystem\Filesystem&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;&amp;#39;filesystem&amp;#39;&lt;/span&gt;           &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Filesystem\FilesystemManager&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Contracts\Filesystem\Factory&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;&amp;#39;filesystem.disk&amp;#39;&lt;/span&gt;      &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Contracts\Filesystem\Filesystem&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;&amp;#39;filesystem.cloud&amp;#39;&lt;/span&gt;     &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Contracts\Filesystem\Cloud&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;&amp;#39;hash&amp;#39;&lt;/span&gt;                 &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Contracts\Hashing\Hasher&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;&amp;#39;translator&amp;#39;&lt;/span&gt;           &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Translation\Translator&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;Symfony\Component\Translation\TranslatorInterface&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;&amp;#39;log&amp;#39;&lt;/span&gt;                  &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Log\Writer&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Contracts\Logging\Log&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;Psr\Log\LoggerInterface&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;&amp;#39;mailer&amp;#39;&lt;/span&gt;               &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Mail\Mailer&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Contracts\Mail\Mailer&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Contracts\Mail\MailQueue&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;&amp;#39;auth.password&amp;#39;&lt;/span&gt;        &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Auth\Passwords\PasswordBrokerManager&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Contracts\Auth\PasswordBrokerFactory&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;&amp;#39;auth.password.broker&amp;#39;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Auth\Passwords\PasswordBroker&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Contracts\Auth\PasswordBroker&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;&amp;#39;queue&amp;#39;&lt;/span&gt;                &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Queue\QueueManager&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Contracts\Queue\Factory&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Contracts\Queue\Monitor&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;&amp;#39;queue.connection&amp;#39;&lt;/span&gt;     &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Contracts\Queue\Queue&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;&amp;#39;redirect&amp;#39;&lt;/span&gt;             &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Routing\Redirector&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;&amp;#39;redis&amp;#39;&lt;/span&gt;                &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Redis\Database&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Contracts\Redis\Database&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;&amp;#39;request&amp;#39;&lt;/span&gt;              &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Http\Request&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;Symfony\Component\HttpFoundation\Request&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;&amp;#39;router&amp;#39;&lt;/span&gt;               &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Routing\Router&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Contracts\Routing\Registrar&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;&amp;#39;session&amp;#39;&lt;/span&gt;              &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Session\SessionManager&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;&amp;#39;session.store&amp;#39;&lt;/span&gt;        &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Session\Store&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;Symfony\Component\HttpFoundation\Session\SessionInterface&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;&amp;#39;url&amp;#39;&lt;/span&gt;                  &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Routing\UrlGenerator&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Contracts\Routing\UrlGenerator&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;&amp;#39;validator&amp;#39;&lt;/span&gt;            &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Validation\Factory&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Contracts\Validation\Factory&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+            &lt;span class=&quot;s1&quot;&gt;&amp;#39;view&amp;#39;&lt;/span&gt;                 &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\View\Factory&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;Illuminate\Contracts\View\Factory&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+
+        &lt;span class=&quot;k&quot;&gt;foreach&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$aliases&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;as&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$key&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$aliases&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;foreach&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$aliases&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;as&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$alias&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+                &lt;span class=&quot;nv&quot;&gt;$this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;alias&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$key&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$alias&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+            &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;构造函数会调用registerCoreContainerAliases方法，这个方法里的aliases数组就有db，对应的类就是Illuminate\Database\DatabaseManager，那就也就是DB::select会调用Illuminate\Database\DatabaseManager::select&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;​&lt;/li&gt;
+&lt;/ul&gt;
+</content>
+        </entry>
     
         <entry>
             <id>http://blog.jachohx.com/post/syntax</id>
@@ -18,13 +258,15 @@
             </author>
             <content type="html">&lt;h1&gt;Markdown 文件&lt;/h1&gt;
 
-&lt;p&gt;&lt;img src=&quot;http://markdown.tw/images/208x128.png&quot; alt=&quot;Markdown&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;http://markdown.tw/images/208x128.png&quot; alt=&quot;Markdown&quot;&gt;&lt;/p&gt;
 
-&lt;p&gt;&lt;strong&gt;NOTE:&lt;/strong&gt; This is Traditional Chinese Edition Document of
-Markdown Syntax. If you are seeking for English Edition
-Document. Please refer to &lt;a href=&quot;http://daringfireball.net/projects/markdown/syntax&quot;&gt;Markdown: Syntax&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;NOTE:&lt;/strong&gt; This is Traditional Chinese Edition Document of&lt;/p&gt;
 
-&lt;p&gt;  &lt;!--more--&gt;&lt;/p&gt;
+&lt;p&gt;Markdown Syntax. If you are seeking for English Edition &lt;/p&gt;
+
+&lt;p&gt;Document. Please refer to &lt;a href=&quot;http://daringfireball.net/projects/markdown/syntax&quot;&gt;Markdown: Syntax&lt;/a&gt;.&lt;/p&gt;
+
+&lt;!--more--&gt;
 
 &lt;h1&gt;Markdown: Syntax&lt;/h1&gt;
 
@@ -35,8 +277,7 @@ Document. Please refer to &lt;a href=&quot;http://daringfireball.net/projects/ma
 &lt;li&gt;&lt;a href=&quot;#philosophy&quot;&gt;哲學&lt;/a&gt;&lt;/li&gt;
 &lt;li&gt;&lt;a href=&quot;#html&quot;&gt;行內 HTML&lt;/a&gt;&lt;/li&gt;
 &lt;li&gt;&lt;a href=&quot;#autoescape&quot;&gt;特殊字元自動轉換&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
 &lt;li&gt;&lt;a href=&quot;#block&quot;&gt;區塊元素&lt;/a&gt;
 
 &lt;ul&gt;
@@ -46,8 +287,7 @@ Document. Please refer to &lt;a href=&quot;http://daringfireball.net/projects/ma
 &lt;li&gt;&lt;a href=&quot;#list&quot;&gt;清單&lt;/a&gt;&lt;/li&gt;
 &lt;li&gt;&lt;a href=&quot;#precode&quot;&gt;程式碼區塊&lt;/a&gt;&lt;/li&gt;
 &lt;li&gt;&lt;a href=&quot;#hr&quot;&gt;分隔線&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
 &lt;li&gt;&lt;a href=&quot;#span&quot;&gt;區段元素&lt;/a&gt;
 
 &lt;ul&gt;
@@ -55,30 +295,23 @@ Document. Please refer to &lt;a href=&quot;http://daringfireball.net/projects/ma
 &lt;li&gt;&lt;a href=&quot;#em&quot;&gt;強調&lt;/a&gt;&lt;/li&gt;
 &lt;li&gt;&lt;a href=&quot;#code&quot;&gt;程式碼&lt;/a&gt;&lt;/li&gt;
 &lt;li&gt;&lt;a href=&quot;#img&quot;&gt;圖片&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
 &lt;li&gt;&lt;a href=&quot;#misc&quot;&gt;其它&lt;/a&gt;
 
 &lt;ul&gt;
 &lt;li&gt;&lt;a href=&quot;#backslash&quot;&gt;跳脫字元&lt;/a&gt;&lt;/li&gt;
 &lt;li&gt;&lt;a href=&quot;#autolink&quot;&gt;自動連結&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
 &lt;li&gt;&lt;a href=&quot;#acknowledgement&quot;&gt;感謝&lt;/a&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
-
 &lt;p&gt;&lt;strong&gt;注意：&lt;/strong&gt;這份文件是用 Markdown 寫的，你可以&lt;a href=&quot;https://github.com/othree/markdown-syntax-zhtw/blob/master/syntax.md&quot;&gt;看看它的原始檔&lt;/a&gt; 。&lt;/p&gt;
 
-&lt;hr /&gt;
+&lt;hr&gt;
 
 &lt;h2 id=&quot;overview&quot;&gt;概述&lt;/h2&gt;
 
-
-
-
 &lt;h3 id=&quot;philosophy&quot;&gt;哲學&lt;/h3&gt;
-
 
 &lt;p&gt;Markdown 的目標是實現「易讀易寫」。&lt;/p&gt;
 
@@ -87,7 +320,6 @@ Document. Please refer to &lt;a href=&quot;http://daringfireball.net/projects/ma
 &lt;p&gt;因此 Markdown 的語法全由標點符號所組成，並經過嚴謹慎選，是為了讓它們看起來就像所要表達的意思。像是在文字兩旁加上星號，看起來就像*強調*。Markdown 的清單看起來，嗯，就是清單。假如你有使用過電子郵件，區塊引言看起來就真的像是引用一段文字。&lt;/p&gt;
 
 &lt;h3 id=&quot;html&quot;&gt;行內 HTML&lt;/h3&gt;
-
 
 &lt;p&gt;Markdown 的語法有個主要的目的：用來作為一種網路內容的&lt;em&gt;寫作&lt;/em&gt;用語言。&lt;/p&gt;
 
@@ -98,8 +330,7 @@ Document. Please refer to &lt;a href=&quot;http://daringfireball.net/projects/ma
 &lt;p&gt;只有區塊元素──比如 &lt;code&gt;&amp;lt;div&amp;gt;&lt;/code&gt;、&lt;code&gt;&amp;lt;table&amp;gt;&lt;/code&gt;、&lt;code&gt;&amp;lt;pre&amp;gt;&lt;/code&gt;、&lt;code&gt;&amp;lt;p&amp;gt;&lt;/code&gt; 等標籤，必須在前後加上空行，以利與內容區隔。而且這些（元素）的開始與結尾標籤，不可以用 tab 或是空白來縮排。Markdown 的產生器有智慧型判斷，可以避免在區塊標籤前後加上沒有必要的 &lt;code&gt;&amp;lt;p&amp;gt;&lt;/code&gt; 標籤。&lt;/p&gt;
 
 &lt;p&gt;舉例來說，在 Markdown 文件裡加上一段 HTML 表格：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;This is a regular paragraph.
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;This is a regular paragraph.
 
 &amp;lt;table&amp;gt;
     &amp;lt;tr&amp;gt;
@@ -108,8 +339,7 @@ Document. Please refer to &lt;a href=&quot;http://daringfireball.net/projects/ma
 &amp;lt;/table&amp;gt;
 
 This is another regular paragraph.
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;請注意，Markdown 語法在 HTML 區塊標籤中將不會被進行處理。例如，你無法在 HTML 區塊內使用 Markdown 形式的&lt;code&gt;*強調*&lt;/code&gt;。&lt;/p&gt;
 
 &lt;p&gt;HTML 的區段標籤如 &lt;code&gt;&amp;lt;span&amp;gt;&lt;/code&gt;、&lt;code&gt;&amp;lt;cite&amp;gt;&lt;/code&gt;、&lt;code&gt;&amp;lt;del&amp;gt;&lt;/code&gt; 則不受限制，可以在 Markdown 的段落、清單或是標題裡任意使用。依照個人習慣，甚至可以不用Markdown 格式，而採用 HTML 標籤來格式化。舉例說明：如果比較喜歡 HTML 的  &lt;code&gt;&amp;lt;a&amp;gt;&lt;/code&gt; 或 &lt;code&gt;&amp;lt;img&amp;gt;&lt;/code&gt; 標籤，可以直接使用這些標籤，而不用 Markdown 提供的連結或是影像標示語法。&lt;/p&gt;
@@ -118,57 +348,38 @@ This is another regular paragraph.
 
 &lt;h3 id=&quot;autoescape&quot;&gt;特殊字元自動轉換&lt;/h3&gt;
 
-
 &lt;p&gt;在 HTML 文件中，有兩個字元需要特殊處理： &lt;code&gt;&amp;lt;&lt;/code&gt; 和 &lt;code&gt;&amp;amp;&lt;/code&gt; 。 &lt;code&gt;&amp;lt;&lt;/code&gt; 符號用於起始標籤，&lt;code&gt;&amp;amp;&lt;/code&gt; 符號則用於標記 HTML 實體，如果你只是想要使用這些符號，你必須要使用實體的形式，像是 &lt;code&gt;&amp;amp;lt;&lt;/code&gt; 和 &lt;code&gt;&amp;amp;amp;&lt;/code&gt;。&lt;/p&gt;
 
 &lt;p&gt;&lt;code&gt;&amp;amp;&lt;/code&gt; 符號其實很容易讓寫作網路文件的人感到困擾，如果你要打「AT&amp;amp;T」 ，你必須要寫成「&lt;code&gt;AT&amp;amp;amp;T&lt;/code&gt;」 ，還得轉換網址內的 &lt;code&gt;&amp;amp;&lt;/code&gt; 符號，如果你要連結到：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;http://images.google.com/images?num=30&amp;amp;q=larry+bird
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;http://images.google.com/images?num=30&amp;amp;q=larry+bird
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;你必須要把網址轉成：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;http://images.google.com/images?num=30&amp;amp;amp;q=larry+bird
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;http://images.google.com/images?num=30&amp;amp;amp;q=larry+bird
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;才能放到連結標籤的 &lt;code&gt;href&lt;/code&gt; 屬性裡。不用說也知道這很容易忘記，這也可能是 HTML 標準檢查所檢查到的錯誤中，數量最多的。&lt;/p&gt;
 
 &lt;p&gt;Markdown 允許你直接使用這些符號，但是你要小心跳脫字元的使用，如果你是在HTML 實體中使用 &lt;code&gt;&amp;amp;&lt;/code&gt; 符號的話，它不會被轉換，而在其它情形下，它則會被轉換成 &lt;code&gt;&amp;amp;amp;&lt;/code&gt;。所以你如果要在文件中插入一個著作權的符號，你可以這樣寫：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;amp;copy;
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&amp;amp;copy;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;Markdown 將不會對這段文字做修改，但是如果你這樣寫：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;AT&amp;amp;T
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;AT&amp;amp;T
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;Markdown 就會將它轉為：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;AT&amp;amp;amp;T
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;AT&amp;amp;amp;T
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;類似的狀況也會發生在 &lt;code&gt;&amp;lt;&lt;/code&gt; 符號上，因為 Markdown 支援 &lt;a href=&quot;#html&quot;&gt;行內 HTML&lt;/a&gt; ，如果你是使用 &lt;code&gt;&amp;lt;&lt;/code&gt; 符號作為 HTML 標籤使用，那 Markdown 也不會對它做任何轉換，但是如果你是寫：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;4 &amp;lt; 5
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;4 &amp;lt; 5
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;Markdown 將會把它轉換為：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;4 &amp;amp;lt; 5
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;4 &amp;amp;lt; 5
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;不過需要注意的是，code 範圍內，不論是行內還是區塊， &lt;code&gt;&amp;lt;&lt;/code&gt; 和 &lt;code&gt;&amp;amp;&lt;/code&gt; 兩個符號都&lt;em&gt;一定&lt;/em&gt;會被轉換成 HTML 實體，這項特性讓你可以很容易地用 Markdown 寫 HTML code （和 HTML 相對而言， HTML 語法中，你要把所有的 &lt;code&gt;&amp;lt;&lt;/code&gt; 和 &lt;code&gt;&amp;amp;&lt;/code&gt; 都轉換為 HTML 實體，才能在 HTML 文件裡面寫出 HTML code。）&lt;/p&gt;
 
-&lt;hr /&gt;
+&lt;hr&gt;
 
 &lt;h2 id=&quot;block&quot;&gt;區塊元素&lt;/h2&gt;
 
-
-
-
 &lt;h3 id=&quot;p&quot;&gt;段落和換行&lt;/h3&gt;
-
 
 &lt;p&gt;一個段落是由一個以上相連接的行句組成，而一個以上的空行則會切分出不同的段落（空行的定義是顯示上看起來像是空行，便會被視為空行。比方說，若某一行只包含空白和 tab，則該行也會被視為空行），一般的段落不需要用空白或斷行縮排。&lt;/p&gt;
 
@@ -180,140 +391,109 @@ This is another regular paragraph.
 
 &lt;h3 id=&quot;header&quot;&gt;標題&lt;/h3&gt;
 
-
 &lt;p&gt;Markdown 支援兩種標題的語法，&lt;a href=&quot;http://docutils.sourceforge.net/mirror/setext.html&quot;&gt;Setext&lt;/a&gt; 和 &lt;a href=&quot;http://www.aaronsw.com/2002/atx/&quot;&gt;atx&lt;/a&gt; 形式。&lt;/p&gt;
 
 &lt;p&gt;Setext 形式是用底線的形式，利用 &lt;code&gt;=&lt;/code&gt; （最高階標題）和 &lt;code&gt;-&lt;/code&gt; （第二階標題），例如：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;This is an H1
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;This is an H1
 =============
 
 This is an H2
 -------------
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;任何數量的 &lt;code&gt;=&lt;/code&gt; 和 &lt;code&gt;-&lt;/code&gt; 都可以有效果。&lt;/p&gt;
 
 &lt;p&gt;Atx 形式則是在行首插入 1 到 6 個 &lt;code&gt;#&lt;/code&gt; ，對應到標題 1 到 6 階，例如：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;# This is an H1
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;# This is an H1
 
 ## This is an H2
 
 ###### This is an H6
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;你可以選擇性地「關閉」atx 樣式的標題，這純粹只是美觀用的，若是覺得這樣看起來比較舒適，你就可以在行尾加上 &lt;code&gt;#&lt;/code&gt;，而行尾的 &lt;code&gt;#&lt;/code&gt; 數量也不用和開頭一樣（行首的井字數量決定標題的階數）：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;# This is an H1 #
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;# This is an H1 #
 
 ## This is an H2 ##
 
 ### This is an H3 ######
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;h3 id=&quot;blockquote&quot;&gt;Blockquotes&lt;/h3&gt;
 
-
 &lt;p&gt;Markdown 使用 email 形式的區塊引言，如果你很熟悉如何在 email 信件中引言，你就知道怎麼在 Markdown 文件中建立一個區塊引言，那會看起來像是你強迫斷行，然後在每行的最前面加上 &lt;code&gt;&amp;gt;&lt;/code&gt; ：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;gt; This is a blockquote with two paragraphs. Lorem ipsum dolor sit amet,
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&amp;gt; This is a blockquote with two paragraphs. Lorem ipsum dolor sit amet,
 &amp;gt; consectetuer adipiscing elit. Aliquam hendrerit mi posuere lectus.
 &amp;gt; Vestibulum enim wisi, viverra nec, fringilla in, laoreet vitae, risus.
 &amp;gt; 
 &amp;gt; Donec sit amet nisl. Aliquam semper ipsum sit amet velit. Suspendisse
 &amp;gt; id sem consectetuer libero luctus adipiscing.
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;Markdown 也允許你只在整個段落的第一行最前面加上 &lt;code&gt;&amp;gt;&lt;/code&gt; ：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;gt; This is a blockquote with two paragraphs. Lorem ipsum dolor sit amet,
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&amp;gt; This is a blockquote with two paragraphs. Lorem ipsum dolor sit amet,
 consectetuer adipiscing elit. Aliquam hendrerit mi posuere lectus.
 Vestibulum enim wisi, viverra nec, fringilla in, laoreet vitae, risus.
 
 &amp;gt; Donec sit amet nisl. Aliquam semper ipsum sit amet velit. Suspendisse
 id sem consectetuer libero luctus adipiscing.
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;區塊引言可以有階層（例如：引言內的引言），只要根據層數加上不同數量的 &lt;code&gt;&amp;gt;&lt;/code&gt; ：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;gt; This is the first level of quoting.
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&amp;gt; This is the first level of quoting.
 &amp;gt;
 &amp;gt; &amp;gt; This is nested blockquote.
 &amp;gt;
 &amp;gt; Back to the first level.
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;引言的區塊內也可以使用其他的 Markdown 語法，包括標題、清單、程式碼區塊等：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;gt; ## This is a header.
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&amp;gt; ## This is a header.
 &amp;gt; 
 &amp;gt; 1.   This is the first list item.
 &amp;gt; 2.   This is the second list item.
 &amp;gt; 
-&amp;gt; Here&#39;s some example code:
+&amp;gt; Here&amp;#39;s some example code:
 &amp;gt; 
-&amp;gt;     return shell_exec(&quot;echo $input | $markdown_script&quot;);
-&lt;/code&gt;&lt;/pre&gt;
-
+&amp;gt;     return shell_exec(&amp;quot;echo $input | $markdown_script&amp;quot;);
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;任何標準的文字編輯器都能簡單地建立 email 樣式的引言，例如 BBEdit ，你可以選取文字後然後從選單中選擇&lt;em&gt;增加引言階層&lt;/em&gt;。&lt;/p&gt;
 
 &lt;h3 id=&quot;list&quot;&gt;清單&lt;/h3&gt;
 
-
 &lt;p&gt;Markdown 支援有序清單和無序清單。&lt;/p&gt;
 
 &lt;p&gt;無序清單使用星號、加號或是減號作為清單標記：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;*   Red
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;*   Red
 *   Green
 *   Blue
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;等同於：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;+   Red
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;+   Red
 +   Green
 +   Blue
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;也等同於：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;-   Red
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;-   Red
 -   Green
 -   Blue
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;有序清單則使用數字接著一個英文句點：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;1.  Bird
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;1.  Bird
 2.  McHale
 3.  Parish
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;很重要的一點是，你在清單標記上使用的數字並不會影響輸出的 HTML 結果，上面的清單所產生的 HTML 標記為：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;ol&amp;gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&amp;lt;ol&amp;gt;
 &amp;lt;li&amp;gt;Bird&amp;lt;/li&amp;gt;
 &amp;lt;li&amp;gt;McHale&amp;lt;/li&amp;gt;
 &amp;lt;li&amp;gt;Parish&amp;lt;/li&amp;gt;
 &amp;lt;/ol&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;如果你的清單標記寫成：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;1.  Bird
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;1.  Bird
 1.  McHale
 1.  Parish
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;或甚至是：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;3. Bird
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;3. Bird
 1. McHale
 8. Parish
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;你都會得到完全相同的 HTML 輸出。重點在於，你可以讓 Markdown 文件的清單數字和輸出的結果相同，或是你懶一點，你可以完全不用在意數字的正確性。&lt;/p&gt;
 
 &lt;p&gt;如果你使用懶惰的寫法，建議第一個項目最好還是從 1. 開始，因為 Markdown 未來可能會支援有序清單的 start 屬性。&lt;/p&gt;
@@ -321,56 +501,44 @@ id sem consectetuer libero luctus adipiscing.
 &lt;p&gt;清單項目標記通常是放在最左邊，但是其實也可以縮排，最多三個空白，項目標記後面則一定要接著至少一個空白或 tab。&lt;/p&gt;
 
 &lt;p&gt;要讓清單看起來更漂亮，你可以把內容用固定的縮排整理好：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;*   Lorem ipsum dolor sit amet, consectetuer adipiscing elit.
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;*   Lorem ipsum dolor sit amet, consectetuer adipiscing elit.
     Aliquam hendrerit mi posuere lectus. Vestibulum enim wisi,
     viverra nec, fringilla in, laoreet vitae, risus.
 *   Donec sit amet nisl. Aliquam semper ipsum sit amet velit.
     Suspendisse id sem consectetuer libero luctus adipiscing.
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;但是如果你很懶，那也不一定需要：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;*   Lorem ipsum dolor sit amet, consectetuer adipiscing elit.
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;*   Lorem ipsum dolor sit amet, consectetuer adipiscing elit.
 Aliquam hendrerit mi posuere lectus. Vestibulum enim wisi,
 viverra nec, fringilla in, laoreet vitae, risus.
 *   Donec sit amet nisl. Aliquam semper ipsum sit amet velit.
 Suspendisse id sem consectetuer libero luctus adipiscing.
-&lt;/code&gt;&lt;/pre&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;如果清單項目間用空行分開， Markdown 會把項目的內容在輸出時用 &lt;code&gt;&amp;lt;p&amp;gt;&lt;/code&gt; &lt;/p&gt;
 
-&lt;p&gt;如果清單項目間用空行分開， Markdown 會把項目的內容在輸出時用 &lt;code&gt;&amp;lt;p&amp;gt;&lt;/code&gt;
-標籤包起來，舉例來說：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;*   Bird
+&lt;p&gt;標籤包起來，舉例來說：&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;*   Bird
 *   Magic
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;會被轉換為：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;ul&amp;gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&amp;lt;ul&amp;gt;
 &amp;lt;li&amp;gt;Bird&amp;lt;/li&amp;gt;
 &amp;lt;li&amp;gt;Magic&amp;lt;/li&amp;gt;
 &amp;lt;/ul&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;但是這個：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;*   Bird
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;*   Bird
 
 *   Magic
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;會被轉換為：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;ul&amp;gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&amp;lt;ul&amp;gt;
 &amp;lt;li&amp;gt;&amp;lt;p&amp;gt;Bird&amp;lt;/p&amp;gt;&amp;lt;/li&amp;gt;
 &amp;lt;li&amp;gt;&amp;lt;p&amp;gt;Magic&amp;lt;/p&amp;gt;&amp;lt;/li&amp;gt;
 &amp;lt;/ul&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;清單項目可以包含多個段落，每個項目下的段落都必須縮排 4 個空白或是一個 tab ：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;1.  This is a list item with two paragraphs. Lorem ipsum dolor
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;1.  This is a list item with two paragraphs. Lorem ipsum dolor
     sit amet, consectetuer adipiscing elit. Aliquam hendrerit
     mi posuere lectus.
 
@@ -379,108 +547,82 @@ Suspendisse id sem consectetuer libero luctus adipiscing.
     sit amet velit.
 
 2.  Suspendisse id sem consectetuer libero luctus adipiscing.
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;如果你每行都有縮排，看起來會看好很多，當然，再次地，如果你很懶惰，Markdown 也允許：&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;*   This is a list item with two paragraphs.
 
-&lt;pre&gt;&lt;code&gt;*   This is a list item with two paragraphs.
-
-    This is the second paragraph in the list item. You&#39;re
+    This is the second paragraph in the list item. You&amp;#39;re
 only required to indent the first line. Lorem ipsum dolor
 sit amet, consectetuer adipiscing elit.
 
 *   Another item in the same list.
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;如果要在清單項目內放進引言，那 &lt;code&gt;&amp;gt;&lt;/code&gt; 就需要縮排：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;*   A list item with a blockquote:
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;*   A list item with a blockquote:
 
     &amp;gt; This is a blockquote
     &amp;gt; inside a list item.
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;如果要放程式碼區塊的話，該區塊就需要縮排&lt;em&gt;兩次&lt;/em&gt;，也就是 8 個空白或是兩個 tab：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;*   A list item with a code block:
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;*   A list item with a code block:
 
         &amp;lt;code goes here&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;當然，項目清單很可能會不小心產生，像是下面這樣的寫法：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;1986. What a great season.
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;1986. What a great season.
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;換句話說，也就是在行首出現&lt;em&gt;數字-句點-空白&lt;/em&gt;，要避免這樣的狀況，你可以在句點前面加上反斜線。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;1986\. What a great season.
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;1986\. What a great season.
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;h3 id=&quot;precode&quot;&gt;程式碼區塊&lt;/h3&gt;
-
 
 &lt;p&gt;和程式相關的寫作或是標籤語言原始碼通常會有已經排版好的程式碼區塊，通常這些區塊我們並不希望它以一般段落文件的方式去排版，而是照原來的樣子顯示，Markdown 會用 &lt;code&gt;&amp;lt;pre&amp;gt;&lt;/code&gt; 和 &lt;code&gt;&amp;lt;code&amp;gt;&lt;/code&gt; 標籤來把程式碼區塊包起來。&lt;/p&gt;
 
 &lt;p&gt;要在 Markdown 中建立程式碼區塊很簡單，只要簡單地縮排 4 個空白或是 1 個 tab 就可以，例如，下面的輸入：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;This is a normal paragraph:
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;This is a normal paragraph:
 
     This is a code block.
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;Markdown 會轉換成：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;p&amp;gt;This is a normal paragraph:&amp;lt;/p&amp;gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&amp;lt;p&amp;gt;This is a normal paragraph:&amp;lt;/p&amp;gt;
 
 &amp;lt;pre&amp;gt;&amp;lt;code&amp;gt;This is a code block.
 &amp;lt;/code&amp;gt;&amp;lt;/pre&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;這個每行一階的縮排（4 個空白或是 1 個 tab），都會被移除，例如：&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;Here is an example of AppleScript:
 
-&lt;pre&gt;&lt;code&gt;Here is an example of AppleScript:
-
-    tell application &quot;Foo&quot;
+    tell application &amp;quot;Foo&amp;quot;
         beep
     end tell
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;會被轉換為：&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&amp;lt;p&amp;gt;Here is an example of AppleScript:&amp;lt;/p&amp;gt;
 
-&lt;pre&gt;&lt;code&gt;&amp;lt;p&amp;gt;Here is an example of AppleScript:&amp;lt;/p&amp;gt;
-
-&amp;lt;pre&amp;gt;&amp;lt;code&amp;gt;tell application &quot;Foo&quot;
+&amp;lt;pre&amp;gt;&amp;lt;code&amp;gt;tell application &amp;quot;Foo&amp;quot;
     beep
 end tell
 &amp;lt;/code&amp;gt;&amp;lt;/pre&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;一個程式碼區塊會一直持續到沒有縮排的那一行（或是文件結尾）。&lt;/p&gt;
 
 &lt;p&gt;在程式碼區塊裡面， &lt;code&gt;&amp;amp;&lt;/code&gt; 、 &lt;code&gt;&amp;lt;&lt;/code&gt; 和 &lt;code&gt;&amp;gt;&lt;/code&gt; 會自動轉成 HTML 實體，這樣的方式讓你非常容易使用 Markdown 插入範例用的 HTML 原始碼，只需要複製貼上，再加上縮排就可以了，剩下的 Markdown 都會幫你處理，例如：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;    &amp;lt;div class=&quot;footer&quot;&amp;gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;    &amp;lt;div class=&amp;quot;footer&amp;quot;&amp;gt;
         &amp;amp;copy; 2004 Foo Corporation
     &amp;lt;/div&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;會被轉換為：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;pre&amp;gt;&amp;lt;code&amp;gt;&amp;amp;lt;div class=&quot;footer&quot;&amp;amp;gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&amp;lt;pre&amp;gt;&amp;lt;code&amp;gt;&amp;amp;lt;div class=&amp;quot;footer&amp;quot;&amp;amp;gt;
     &amp;amp;amp;copy; 2004 Foo Corporation
 &amp;amp;lt;/div&amp;amp;gt;
 &amp;lt;/code&amp;gt;&amp;lt;/pre&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;程式碼區塊中，一般的 Markdown 語法不會被轉換，像是星號便只是星號，這表示你可以很容易地以 Markdown 語法撰寫 Markdown 語法相關的文件。&lt;/p&gt;
 
 &lt;h3 id=&quot;hr&quot;&gt;分隔線&lt;/h3&gt;
 
-
 &lt;p&gt;你可以在一行中用三個或以上的星號、減號、底線來建立一個分隔線，行內不能有其他東西。你也可以在星號中間插入空白。下面每種寫法都可以建立分隔線：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;* * *
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;* * *
 
 ***
 
@@ -489,58 +631,41 @@ end tell
 - - -
 
 ---------------------------------------
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;hr /&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;hr&gt;
 
 &lt;h2 id=&quot;span&quot;&gt;區段元素&lt;/h2&gt;
 
-
-
-
 &lt;h3 id=&quot;link&quot;&gt;連結&lt;/h3&gt;
-
 
 &lt;p&gt;Markdown 支援兩種形式的連結語法： &lt;em&gt;行內&lt;/em&gt;和&lt;em&gt;參考&lt;/em&gt;兩種形式。&lt;/p&gt;
 
 &lt;p&gt;不管是哪一種，連結的文字都是用 [方括號] 來標記。&lt;/p&gt;
 
 &lt;p&gt;要建立一個行內形式的連結，只要在方塊括號後面馬上接著括號並插入網址連結即可，如果你還想要加上連結的 title 文字，只要在網址後面，用雙引號把 title 文字包起來即可，例如：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;This is [an example](http://example.com/ &quot;Title&quot;) inline link.
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;This is [an example](http://example.com/ &amp;quot;Title&amp;quot;) inline link.
 
 [This link](http://example.net/) has no title attribute.
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;會產生：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;p&amp;gt;This is &amp;lt;a href=&quot;http://example.com/&quot; title=&quot;Title&quot;&amp;gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&amp;lt;p&amp;gt;This is &amp;lt;a href=&amp;quot;http://example.com/&amp;quot; title=&amp;quot;Title&amp;quot;&amp;gt;
 an example&amp;lt;/a&amp;gt; inline link.&amp;lt;/p&amp;gt;
 
-&amp;lt;p&amp;gt;&amp;lt;a href=&quot;http://example.net/&quot;&amp;gt;This link&amp;lt;/a&amp;gt; has no
+&amp;lt;p&amp;gt;&amp;lt;a href=&amp;quot;http://example.net/&amp;quot;&amp;gt;This link&amp;lt;/a&amp;gt; has no
 title attribute.&amp;lt;/p&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;如果你是要連結到同樣主機的資源，你可以使用相對路徑：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;See my [About](/about/) page for details.   
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;See my [About](/about/) page for details.   
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;參考形式的連結使用另外一個方括號接在連結文字的括號後面，而在第二個方括號裡面要填入用以辨識連結的標籤：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;This is [an example][id] reference-style link.
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;This is [an example][id] reference-style link.
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;你也可以選擇性地在兩個方括號中間加上空白：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;This is [an example] [id] reference-style link.
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;This is [an example] [id] reference-style link.
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;接著，在文件的任意處，你可以把這個標籤的連結內容定義出來：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;[id]: http://example.com/  &quot;Optional Title Here&quot;
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;[id]: http://example.com/  &amp;quot;Optional Title Here&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;連結定義的形式為：&lt;/p&gt;
 
 &lt;ul&gt;
@@ -551,277 +676,203 @@ title attribute.&amp;lt;/p&amp;gt;
 &lt;li&gt;選擇性地接著 title 內容，可以用單引號、雙引號或是括弧包著&lt;/li&gt;
 &lt;/ul&gt;
 
-
 &lt;p&gt;下面這三種連結的定義都是相同：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;[foo]: http://example.com/  &quot;Optional Title Here&quot;
-[foo]: http://example.com/  &#39;Optional Title Here&#39;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;[foo]: http://example.com/  &amp;quot;Optional Title Here&amp;quot;
+[foo]: http://example.com/  &amp;#39;Optional Title Here&amp;#39;
 [foo]: http://example.com/  (Optional Title Here)
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;&lt;strong&gt;請注意：&lt;/strong&gt;有一個已知的問題是 Markdown.pl 1.0.1 會忽略單引號包起來的連結 title。&lt;/p&gt;
 
 &lt;p&gt;連結網址也可以用方括號包起來：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;[id]: &amp;lt;http://example.com/&amp;gt;  &quot;Optional Title Here&quot;
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;[id]: &amp;lt;http://example.com/&amp;gt;  &amp;quot;Optional Title Here&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;你也可以把 title 屬性放到下一行，也可以加一些縮排，網址太長的話，這樣會比較好看：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;[id]: http://example.com/longish/path/to/resource/here
-    &quot;Optional Title Here&quot;
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;[id]: http://example.com/longish/path/to/resource/here
+    &amp;quot;Optional Title Here&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;網址定義只有在產生連結的時候用到，並不會直接出現在文件之中。&lt;/p&gt;
 
 &lt;p&gt;連結辨識標籤可以有字母、數字、空白和標點符號，但是並&lt;em&gt;不&lt;/em&gt;區分大小寫，因此下面兩個連結是一樣的：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;[link text][a]
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;[link text][a]
 [link text][A]
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;&lt;em&gt;預設的連結標籤&lt;/em&gt;功能讓你可以省略指定連結標籤，這種情形下，連結標籤和連結文字會視為相同，要用預設連結標籤只要在連結文字後面加上一個空的方括號，如果你要讓 &quot;Google&quot; 連結到 google.com，你可以簡化成：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;[Google][]
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;&lt;em&gt;預設的連結標籤&lt;/em&gt;功能讓你可以省略指定連結標籤，這種情形下，連結標籤和連結文字會視為相同，要用預設連結標籤只要在連結文字後面加上一個空的方括號，如果你要讓 &amp;quot;Google&amp;quot; 連結到 google.com，你可以簡化成：&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;[Google][]
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;然後定義連結內容：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;[Google]: http://google.com/
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;[Google]: http://google.com/
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;由於連結文字可能包含空白，所以這種簡化的標籤內也可以包含多個文字：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;Visit [Daring Fireball][] for more information.
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;Visit [Daring Fireball][] for more information.
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;然後接著定義連結：&lt;/p&gt;
 
-&lt;pre&gt;&lt;code&gt;[Daring Fireball]: http://daringfireball.net/
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;p&gt;​ &lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;[Daring Fireball]: http://daringfireball.net/
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;連結的定義可以放在文件中的任何一個地方，我比較偏好直接放在連結出現段落的後面，你也可以把它放在文件最後面，就像是註解一樣。&lt;/p&gt;
 
 &lt;p&gt;下面是一個參考式連結的範例：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;I get 10 times more traffic from [Google] [1] than from
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;I get 10 times more traffic from [Google] [1] than from
 [Yahoo] [2] or [MSN] [3].
 
-  [1]: http://google.com/        &quot;Google&quot;
-  [2]: http://search.yahoo.com/  &quot;Yahoo Search&quot;
-  [3]: http://search.msn.com/    &quot;MSN Search&quot;
-&lt;/code&gt;&lt;/pre&gt;
-
+  [1]: http://google.com/        &amp;quot;Google&amp;quot;
+  [2]: http://search.yahoo.com/  &amp;quot;Yahoo Search&amp;quot;
+  [3]: http://search.msn.com/    &amp;quot;MSN Search&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;如果改成用連結名稱的方式寫：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;I get 10 times more traffic from [Google][] than from
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;I get 10 times more traffic from [Google][] than from
 [Yahoo][] or [MSN][].
 
-  [google]: http://google.com/        &quot;Google&quot;
-  [yahoo]:  http://search.yahoo.com/  &quot;Yahoo Search&quot;
-  [msn]:    http://search.msn.com/    &quot;MSN Search&quot;
-&lt;/code&gt;&lt;/pre&gt;
-
+  [google]: http://google.com/        &amp;quot;Google&amp;quot;
+  [yahoo]:  http://search.yahoo.com/  &amp;quot;Yahoo Search&amp;quot;
+  [msn]:    http://search.msn.com/    &amp;quot;MSN Search&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;上面兩種寫法都會產生下面的 HTML。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;p&amp;gt;I get 10 times more traffic from &amp;lt;a href=&quot;http://google.com/&quot;
-title=&quot;Google&quot;&amp;gt;Google&amp;lt;/a&amp;gt; than from
-&amp;lt;a href=&quot;http://search.yahoo.com/&quot; title=&quot;Yahoo Search&quot;&amp;gt;Yahoo&amp;lt;/a&amp;gt;
-or &amp;lt;a href=&quot;http://search.msn.com/&quot; title=&quot;MSN Search&quot;&amp;gt;MSN&amp;lt;/a&amp;gt;.&amp;lt;/p&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&amp;lt;p&amp;gt;I get 10 times more traffic from &amp;lt;a href=&amp;quot;http://google.com/&amp;quot;
+title=&amp;quot;Google&amp;quot;&amp;gt;Google&amp;lt;/a&amp;gt; than from
+&amp;lt;a href=&amp;quot;http://search.yahoo.com/&amp;quot; title=&amp;quot;Yahoo Search&amp;quot;&amp;gt;Yahoo&amp;lt;/a&amp;gt;
+or &amp;lt;a href=&amp;quot;http://search.msn.com/&amp;quot; title=&amp;quot;MSN Search&amp;quot;&amp;gt;MSN&amp;lt;/a&amp;gt;.&amp;lt;/p&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;下面是用行內形式寫的同樣一段內容的 Markdown 文件，提供作為比較之用：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;I get 10 times more traffic from [Google](http://google.com/ &quot;Google&quot;)
-than from [Yahoo](http://search.yahoo.com/ &quot;Yahoo Search&quot;) or
-[MSN](http://search.msn.com/ &quot;MSN Search&quot;).
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;I get 10 times more traffic from [Google](http://google.com/ &amp;quot;Google&amp;quot;)
+than from [Yahoo](http://search.yahoo.com/ &amp;quot;Yahoo Search&amp;quot;) or
+[MSN](http://search.msn.com/ &amp;quot;MSN Search&amp;quot;).
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;參考式的連結其實重點不在於它比較好寫，而是它比較好讀，比較一下上面的範例，使用參考式的文章本身只有 81 個字元，但是用行內形式的連結卻會增加到 176 個字元，如果是用純 HTML 格式來寫，會有 234 個字元，在 HTML 格式中，標籤比文字還要多。&lt;/p&gt;
 
 &lt;p&gt;使用 Markdown 的參考式連結，可以讓文件更像是瀏覽器最後產生的結果，讓你可以把一些標記相關的資訊移到段落文字之外，你就可以增加連結而不讓文章的閱讀感覺被打斷。&lt;/p&gt;
 
 &lt;h3 id=&quot;em&quot;&gt;強調&lt;/h3&gt;
 
-
 &lt;p&gt;Markdown 使用星號（&lt;code&gt;*&lt;/code&gt;）和底線（&lt;code&gt;_&lt;/code&gt;）作為標記強調字詞的符號，被 &lt;code&gt;*&lt;/code&gt; 或 &lt;code&gt;_&lt;/code&gt; 包圍的字詞會被轉成用 &lt;code&gt;&amp;lt;em&amp;gt;&lt;/code&gt; 標籤包圍，用兩個 &lt;code&gt;*&lt;/code&gt; 或 &lt;code&gt;_&lt;/code&gt; 包起來的話，則會被轉成 &lt;code&gt;&amp;lt;strong&amp;gt;&lt;/code&gt;，例如：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;*single asterisks*
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;*single asterisks*
 
 _single underscores_
 
 **double asterisks**
 
 __double underscores__
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;會轉成：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;em&amp;gt;single asterisks&amp;lt;/em&amp;gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&amp;lt;em&amp;gt;single asterisks&amp;lt;/em&amp;gt;
 
 &amp;lt;em&amp;gt;single underscores&amp;lt;/em&amp;gt;
 
 &amp;lt;strong&amp;gt;double asterisks&amp;lt;/strong&amp;gt;
 
 &amp;lt;strong&amp;gt;double underscores&amp;lt;/strong&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;你可以隨便用你喜歡的樣式，唯一的限制是，你用什麼符號開啟標籤，就要用什麼符號結束。&lt;/p&gt;
 
 &lt;p&gt;強調也可以直接插在文字中間：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;un*frigging*believable
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;un*frigging*believable
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;但是如果你的 &lt;code&gt;*&lt;/code&gt; 和 &lt;code&gt;_&lt;/code&gt; 兩邊都有空白的話，它們就只會被當成普通的符號。&lt;/p&gt;
 
 &lt;p&gt;如果要在文字前後直接插入普通的星號或底線，你可以用反斜線：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;\*this text is surrounded by literal asterisks\*
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;\*this text is surrounded by literal asterisks\*
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;h3 id=&quot;code&quot;&gt;程式碼&lt;/h3&gt;
 
-
 &lt;p&gt;如果要標記一小段行內程式碼，你可以用反引號把它包起來（&lt;code&gt;`&lt;/code&gt;），例如：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;Use the `printf()` function.
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;Use the `printf()` function.
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;會產生：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;p&amp;gt;Use the &amp;lt;code&amp;gt;printf()&amp;lt;/code&amp;gt; function.&amp;lt;/p&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&amp;lt;p&amp;gt;Use the &amp;lt;code&amp;gt;printf()&amp;lt;/code&amp;gt; function.&amp;lt;/p&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;如果要在程式碼區段內插入反引號，你可以用多個反引號來開啟和結束程式碼區段：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;``There is a literal backtick (`) here.``
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;``There is a literal backtick (`) here.``
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;這段語法會產生：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;p&amp;gt;&amp;lt;code&amp;gt;There is a literal backtick (`) here.&amp;lt;/code&amp;gt;&amp;lt;/p&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&amp;lt;p&amp;gt;&amp;lt;code&amp;gt;There is a literal backtick (`) here.&amp;lt;/code&amp;gt;&amp;lt;/p&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;程式碼區段的起始和結束端都可以放入一個空白，起始端後面一個，結束端前面一個，這樣你就可以在區段的一開始就插入反引號：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;A single backtick in a code span: `` ` ``
-
-A backtick-delimited string in a code span: `` `foo` ``
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;A single backtick in a code span: `` ` ``
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;​ &lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;A backtick-delimited string in a code span: `` `foo` ``
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;會產生：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;p&amp;gt;A single backtick in a code span: &amp;lt;code&amp;gt;`&amp;lt;/code&amp;gt;&amp;lt;/p&amp;gt;
-
-&amp;lt;p&amp;gt;A backtick-delimited string in a code span: &amp;lt;code&amp;gt;`foo`&amp;lt;/code&amp;gt;&amp;lt;/p&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&amp;lt;p&amp;gt;A single backtick in a code span: &amp;lt;code&amp;gt;`&amp;lt;/code&amp;gt;&amp;lt;/p&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;​ &lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&amp;lt;p&amp;gt;A backtick-delimited string in a code span: &amp;lt;code&amp;gt;`foo`&amp;lt;/code&amp;gt;&amp;lt;/p&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;在程式碼區段內，&lt;code&gt;&amp;amp;&lt;/code&gt; 和方括號都會被轉成 HTML 實體，這樣會比較容易插入 HTML 原始碼，Markdown 會把下面這段：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;Please don&#39;t use any `&amp;lt;blink&amp;gt;` tags.
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;Please don&amp;#39;t use any `&amp;lt;blink&amp;gt;` tags.
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;轉為：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;p&amp;gt;Please don&#39;t use any &amp;lt;code&amp;gt;&amp;amp;lt;blink&amp;amp;gt;&amp;lt;/code&amp;gt; tags.&amp;lt;/p&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&amp;lt;p&amp;gt;Please don&amp;#39;t use any &amp;lt;code&amp;gt;&amp;amp;lt;blink&amp;amp;gt;&amp;lt;/code&amp;gt; tags.&amp;lt;/p&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;你也可以這樣寫：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;`&amp;amp;#8212;` is the decimal-encoded equivalent of `&amp;amp;mdash;`.
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;`&amp;amp;#8212;` is the decimal-encoded equivalent of `&amp;amp;mdash;`.
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;以產生：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;p&amp;gt;&amp;lt;code&amp;gt;&amp;amp;amp;#8212;&amp;lt;/code&amp;gt; is the decimal-encoded
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&amp;lt;p&amp;gt;&amp;lt;code&amp;gt;&amp;amp;amp;#8212;&amp;lt;/code&amp;gt; is the decimal-encoded
 equivalent of &amp;lt;code&amp;gt;&amp;amp;amp;mdash;&amp;lt;/code&amp;gt;.&amp;lt;/p&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;h3 id=&quot;img&quot;&gt;圖片&lt;/h3&gt;
-
 
 &lt;p&gt;很明顯地，要在純文字應用中設計一個 「自然」的語法來插入圖片是有一定難度的。&lt;/p&gt;
 
 &lt;p&gt;Markdown 使用一種和連結很相似的語法來標記圖片，同樣也允許兩種樣式： &lt;em&gt;行內&lt;/em&gt;和&lt;em&gt;參考&lt;/em&gt;。&lt;/p&gt;
 
 &lt;p&gt;行內圖片的語法看起來像是：&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;![Alt text](/path/to/img.jpg)
 
-&lt;pre&gt;&lt;code&gt;![Alt text](/path/to/img.jpg)
-
-![Alt text](/path/to/img.jpg &quot;Optional title&quot;)
-&lt;/code&gt;&lt;/pre&gt;
-
+![Alt text](/path/to/img.jpg &amp;quot;Optional title&amp;quot;)
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;詳細敘述如下：&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;一個驚嘆號 &lt;code&gt;!&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;接著一個方括號，裡面放上圖片的替代文字&lt;/li&gt;
-&lt;li&gt;接著一個普通括號，裡面放上圖片的網址，最後還可以用引號包住並加上
-選擇性的 &#39;title&#39; 文字。&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;一個驚嘆號 &lt;code&gt;!&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;接著一個方括號，裡面放上圖片的替代文字&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;接著一個普通括號，裡面放上圖片的網址，最後還可以用引號包住並加上&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
+&lt;p&gt;選擇性的 &amp;#39;title&amp;#39; 文字。&lt;/p&gt;
 
 &lt;p&gt;參考式的圖片語法則長得像這樣：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;![Alt text][id]
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;![Alt text][id]
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;「id」是圖片參考的名稱，圖片參考的定義方式則和連結參考一樣：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;[id]: url/to/image  &quot;Optional title attribute&quot;
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;[id]: url/to/image  &amp;quot;Optional title attribute&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;到目前為止， Markdown 還沒有辦法指定圖片的寬高，如果你需要的話，你可以使用普通的 &lt;code&gt;&amp;lt;img&amp;gt;&lt;/code&gt; 標籤。&lt;/p&gt;
 
-&lt;hr /&gt;
+&lt;hr&gt;
 
 &lt;h2 id=&quot;misc&quot;&gt;其它&lt;/h2&gt;
 
-
-
-
 &lt;h3 id=&quot;autolink&quot;&gt;自動連結&lt;/h3&gt;
 
-
 &lt;p&gt;Markdown 支援比較簡短的自動連結形式來處理網址和電子郵件信箱，只要是用方括號包起來， Markdown 就會自動把它轉成連結，連結的文字就和連結位置一樣，例如：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;http://example.com/&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&amp;lt;http://example.com/&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;Markdown 會轉為：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;a href=&quot;http://example.com/&quot;&amp;gt;http://example.com/&amp;lt;/a&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&amp;lt;a href=&amp;quot;http://example.com/&amp;quot;&amp;gt;http://example.com/&amp;lt;/a&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;自動的郵件連結也很類似，只是 Markdown 會先做一個編碼轉換的過程，把文字字元轉成 16 進位碼的 HTML 實體，這樣的格式可以混淆一些不好的信箱地址收集機器人，例如：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;address@example.com&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&amp;lt;address@example.com&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;Markdown 會轉成：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;a href=&quot;&amp;amp;#x6D;&amp;amp;#x61;i&amp;amp;#x6C;&amp;amp;#x74;&amp;amp;#x6F;:&amp;amp;#x61;&amp;amp;#x64;&amp;amp;#x64;&amp;amp;#x72;&amp;amp;#x65;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&amp;lt;a href=&amp;quot;&amp;amp;#x6D;&amp;amp;#x61;i&amp;amp;#x6C;&amp;amp;#x74;&amp;amp;#x6F;:&amp;amp;#x61;&amp;amp;#x64;&amp;amp;#x64;&amp;amp;#x72;&amp;amp;#x65;
 &amp;amp;#115;&amp;amp;#115;&amp;amp;#64;&amp;amp;#101;&amp;amp;#120;&amp;amp;#x61;&amp;amp;#109;&amp;amp;#x70;&amp;amp;#x6C;e&amp;amp;#x2E;&amp;amp;#99;&amp;amp;#111;
-&amp;amp;#109;&quot;&amp;gt;&amp;amp;#x61;&amp;amp;#x64;&amp;amp;#x64;&amp;amp;#x72;&amp;amp;#x65;&amp;amp;#115;&amp;amp;#115;&amp;amp;#64;&amp;amp;#101;&amp;amp;#120;&amp;amp;#x61;
+&amp;amp;#109;&amp;quot;&amp;gt;&amp;amp;#x61;&amp;amp;#x64;&amp;amp;#x64;&amp;amp;#x72;&amp;amp;#x65;&amp;amp;#115;&amp;amp;#115;&amp;amp;#64;&amp;amp;#101;&amp;amp;#120;&amp;amp;#x61;
 &amp;amp;#109;&amp;amp;#x70;&amp;amp;#x6C;e&amp;amp;#x2E;&amp;amp;#99;&amp;amp;#111;&amp;amp;#109;&amp;lt;/a&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;在瀏覽器裡面，這段字串會變成一個可以點擊的「address@example.com」連結。&lt;/p&gt;
 
 &lt;p&gt;（這種作法雖然可以混淆不少的機器人，但並無法全部擋下來，不過這樣也比什麼都不做好些。無論如何，公開你的信箱終究會引來廣告信件的。）&lt;/p&gt;
 
 &lt;h3 id=&quot;backslash&quot;&gt;跳脫字元&lt;/h3&gt;
 
-
 &lt;p&gt;Markdown 可以利用反斜線來插入一些在語法中有其它意義的符號，例如：如果你想要用星號加在文字旁邊的方式來做出強調效果（但不用 &lt;code&gt;&amp;lt;em&amp;gt;&lt;/code&gt; 標籤），你可以在星號的前面加上反斜線：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;\*literal asterisks\*
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;\*literal asterisks\*
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;Markdown 支援在下面這些符號前面加上反斜線來幫助插入普通的符號：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;\   反斜線
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;\   反斜線
 `   反引號
 *   星號
 _   底線
@@ -833,10 +884,8 @@ _   底線
 -   減號
 .   英文句點
 !   驚嘆號
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;h2 id=&quot;acknowledgement&quot;&gt;感謝&lt;/h2&gt;
-
 
 &lt;p&gt;感謝 &lt;a href=&quot;https://twitter.com/#!/leafy7382&quot;&gt;leafy7382&lt;/a&gt; 協助翻譯，&lt;a href=&quot;http://iamhlb.com/&quot;&gt;hlb&lt;/a&gt;、&lt;a href=&quot;http://twitter.com/randylien&quot;&gt;Randylien&lt;/a&gt; 幫忙潤稿，&lt;a href=&quot;https://twitter.com/#!/ethantw&quot;&gt;ethantw&lt;/a&gt; 的&lt;a href=&quot;http://ethantw.net/projects/han/&quot;&gt;漢字標準格式?CSS Reset&lt;/a&gt;， &lt;a href=&quot;http://kidwm.net/&quot;&gt;WM&lt;/a&gt; 回報文字錯誤。&lt;/p&gt;
 </content>
@@ -860,12 +909,10 @@ _   底線
 
 &lt;!--more--&gt;
 
-
 &lt;h2&gt;.project 增加maven项目&lt;/h2&gt;
 
 &lt;p&gt;项目的配置文件.project 在&lt;projectDescription&gt;下的配置如下：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;buildSpec&amp;gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&amp;lt;buildSpec&amp;gt;
     &amp;lt;buildCommand&amp;gt;
         &amp;lt;name&amp;gt;org.eclipse.jdt.core.javabuilder&amp;lt;/name&amp;gt;
         &amp;lt;arguments&amp;gt;
@@ -881,8 +928,7 @@ _   底線
     &amp;lt;nature&amp;gt;org.eclipse.jdt.core.javanature&amp;lt;/nature&amp;gt;
     &amp;lt;nature&amp;gt;org.eclipse.m2e.core.maven2Nature&amp;lt;/nature&amp;gt;
 &amp;lt;/natures&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;只要buildSpec，natures下加入m2e的那两段代码就可以了。&lt;/p&gt;
 
 &lt;p&gt;在.project下增加了那两段代码后，项目及pom.xml可以右键run maven。&lt;/p&gt;
@@ -892,14 +938,12 @@ _   底線
 &lt;h2&gt;.classpath 增加maven 的依赖&lt;/h2&gt;
 
 &lt;p&gt;而.classpath下多了这几行代码：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;classpathentry kind=&quot;con&quot; path=&quot;org.eclipse.m2e.MAVEN2_CLASSPATH_CONTAINER&quot;&amp;gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&amp;lt;classpathentry kind=&amp;quot;con&amp;quot; path=&amp;quot;org.eclipse.m2e.MAVEN2_CLASSPATH_CONTAINER&amp;quot;&amp;gt;
     &amp;lt;attributes&amp;gt;
-        &amp;lt;attribute name=&quot;maven.pomderived&quot; value=&quot;true&quot;/&amp;gt;
+        &amp;lt;attribute name=&amp;quot;maven.pomderived&amp;quot; value=&amp;quot;true&amp;quot;/&amp;gt;
     &amp;lt;/attributes&amp;gt;
 &amp;lt;/classpathentry&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;只要把以上的代码加入到&lt;classpath&gt;下就可以了。maven的包依赖就会导入了。&lt;/p&gt;
 
 &lt;p&gt;好了，只要在这两个配置文件里增加了了maven配置，整个maven就可以用了。&lt;/p&gt;
@@ -928,32 +972,24 @@ _   底線
 
 &lt;!--more--&gt;
 
-
 &lt;p&gt;upload.bat脚本：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;bin\rsync -av /blog/src/ user@ip::blog
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;bin\rsync -av /blog/src/ user@ip::blog
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;blog是在vps上的/etc/rsyncd.conf上加上&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;[blog]
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;[blog]
 path=/var/www/blog/src
 read only=false
 auth users=user
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;down.bat&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;bin\rsync -av rsync@216.18.193.125::blog /blog/src/
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;bin\rsync -av rsync@216.18.193.125::blog /blog/src/
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;upload.bat与down.bat文件放在rsync的bin同级目录，且当前有/src/blog目录&lt;/p&gt;
 
 &lt;p&gt;现在的问题是，如何在vps上把post文件生成静态文件，然后再上传到github。&lt;/p&gt;
 
 &lt;p&gt;blog下的目录是这样的&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;|-- git (git静态文件)
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;|-- git (git静态文件)
 |-- log (更新日志)
 |-- src (jekyll项目)
 |   |-- (jekyll配置)
@@ -962,48 +998,41 @@ auth users=user
 |-- git.sh
 |-- time
 |-- update.sh
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;check.sh 定时检查项目有没有更新，time记录下上一次的更新时间，update.txt是每次要提交的更新说明，如果有修改，说明有更新&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;cd /var/www/blog
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;cd /var/www/blog
 time=`stat -c %Z  src/update.txt`
 last=`cat time`
 if [[ $time -ne $last ]];then
 ./update.sh
 echo $time &amp;gt; time
 fi
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;update.sh 检查到有更新，用jekyll生成静态文件&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;base=/var/www/blog
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;base=/var/www/blog
 cd $base/src
 jekyll
 commit=`cat update.txt`
 cd $base
 log=$base/log/git.log
 $base/git.sh $commit &amp;gt;&amp;gt; $log
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;git.sh 把静态文件的修改更新到github上&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;commit=$1
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;commit=$1
 cd /var/www/blog
 cp -rf src/_site/* git/
 cd git
-echo &#39;------------------------------&#39;
+echo &amp;#39;------------------------------&amp;#39;
 echo $commit
-echo  `date  &#39;+%Y-%m-%d %T&#39;` 
+echo  `date  &amp;#39;+%Y-%m-%d %T&amp;#39;` 
 git st
 git add .
-for delfile in `git st | grep deleted | awk &#39;{print $3}&#39;`;do
+for delfile in `git st | grep deleted | awk &amp;#39;{print $3}&amp;#39;`;do
 git rm $delfile
 done
-git cm &quot;$commit&quot;
+git cm &amp;quot;$commit&amp;quot;
 git push 
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;OK，到这样的话就可以在windows下写md文件，且同步到github上了&lt;/p&gt;
 </content>
         </entry>
@@ -1017,11 +1046,9 @@ git push
                 <name>muzuiget</name>
             </author>
             <content type="html">&lt;p&gt;最近看到一行代码&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;map.put(key, Integer.valueOf(&quot;1&quot;));
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Map是HashMap&amp;lt;String, Integer&gt;();&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;map.put(key, Integer.valueOf(&amp;quot;1&amp;quot;));
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Map是HashMap&lt;String, Integer&gt;();&lt;/p&gt;
 
 &lt;p&gt;首先这行代码效率肯定是很低的，1是数字，然后转成了字符，再转成数字。&lt;/p&gt;
 
@@ -1033,20 +1060,16 @@ git push
 
 &lt;!--more--&gt;
 
-
 &lt;p&gt;下面来看下这段代码&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;Integer i1 = 1;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;Integer i1 = 1;
 Integer i2 = new Integer(1);
 Integer i3 = Integer.valueOf(1);    
-Integer i4 = Integer.valueOf(&quot;1&quot;);
+Integer i4 = Integer.valueOf(&amp;quot;1&amp;quot;);
 Integer i5 = 129;       
 int i6 = i5;
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;在Class文件里可以看到&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;0  iconst_1
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;0  iconst_1
 1  invokestatic java.lang.Integer.valueOf(int) : java.lang.Integer [16]
 4  astore_1 [i1]
 5  new java.lang.Integer [17]
@@ -1057,7 +1080,7 @@ int i6 = i5;
 14  iconst_1
 15  invokestatic java.lang.Integer.valueOf(int) : java.lang.Integer [16]
 18  astore_3 [i3]
-19  ldc &amp;lt;String &quot;1&quot;&amp;gt; [25]
+19  ldc &amp;lt;String &amp;quot;1&amp;quot;&amp;gt; [25]
 21  invokestatic java.lang.Integer.valueOf(java.lang.String) : java.lang.Integer [27]
 24  astore 4 [i4]
 26  sipush 129
@@ -1066,8 +1089,7 @@ int i6 = i5;
 34  aload 5 [i5]
 36  invokevirtual java.lang.Integer.intValue() : int [30]
 39  istore 6 [i6]
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;i1是1，JDK会自动装箱boxing，调用Integer.valueOf(int)方法。与i3是一样的效果。&lt;/p&gt;
 
 &lt;p&gt;而i2是直接new 一个新的Integer。&lt;/p&gt;
@@ -1079,19 +1101,16 @@ int i6 = i5;
 &lt;p&gt;i6是一个自动拆箱unboxing，调用Integer.intValue方法。&lt;/p&gt;
 
 &lt;p&gt;下面再来看下valueOf(int)这个方法&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;public static Integer valueOf(int i) {
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;public static Integer valueOf(int i) {
     final int offset = 128;
     if (i &amp;gt;= -128 &amp;amp;&amp;amp; i &amp;lt;= 127) { // must cache 
         return IntegerCache.cache[i + offset];
     }
     return new Integer(i);
 }
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;在看下IntegerCache&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;private static class IntegerCache {
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;private static class IntegerCache {
     private IntegerCache(){}
 
     static final Integer cache[] = new Integer[-(-128) + 127 + 1];
@@ -1101,31 +1120,22 @@ int i6 = i5;
         cache[i] = new Integer(i - 128);
     }
 }
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;IntegerCache会对-128~127之间的数做一个缓存，在valueOf方法里，对-128~127之间的数直接使用IntegerCache缓存，不在这个范围的，则new Integer(int)方法。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;System.out.println(Integer.valueOf(127) == Integer.valueOf(127));
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;System.out.println(Integer.valueOf(127) == Integer.valueOf(127));
 System.out.println(Integer.valueOf(129) == Integer.valueOf(129));
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;这两个的输出是true，false，也就是第一个用了缓存，第二个都是new出来的对象。&lt;/p&gt;
 
 &lt;p&gt;所以最开始那个代码可以使用&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;map.put(key, 1);
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;map.put(key, 1);
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;当然为了兼容1.4那么就写成&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;map.put(key, Integer.valueOf(1));
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;map.put(key, Integer.valueOf(1));
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;但最好不要用&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;map.put(key, new Integer(1));
-&lt;/code&gt;&lt;/pre&gt;
-</content>
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;map.put(key, new Integer(1));
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;</content>
         </entry>
     
         <entry>
@@ -1140,7 +1150,6 @@ System.out.println(Integer.valueOf(129) == Integer.valueOf(129));
 
 &lt;!--more--&gt;
 
-
 &lt;p&gt;Github Pages有以下几个优点：&lt;/p&gt;
 
 &lt;ul&gt;
@@ -1151,7 +1160,6 @@ System.out.println(Integer.valueOf(129) == Integer.valueOf(129));
     &lt;li&gt;可以绑定自己的域名&lt;/li&gt;
 &lt;/ul&gt;
 
-
 &lt;p&gt;当然他也有缺点：&lt;/p&gt;
 
 &lt;ul&gt;
@@ -1159,7 +1167,6 @@ System.out.println(Integer.valueOf(129) == Integer.valueOf(129));
 &lt;li&gt;动态程序的部分相当局限，比如没有评论，不过还好我们有解决方案。&lt;/li&gt;
 &lt;li&gt;基于Git，很多东西需要动手，不像Wordpress有强大的后台&lt;/li&gt;
 &lt;/ul&gt;
-
 
 &lt;p&gt;大致介绍到此，作为个人博客来说，简洁清爽的表达自己的工作、心得，就已达目标，所以Github Pages是我认为此需求最完美的解决方案了。&lt;/p&gt;
 
@@ -1180,7 +1187,6 @@ System.out.println(Integer.valueOf(129) == Integer.valueOf(129));
     &lt;li&gt;等待域名解析生效&lt;/li&gt;
 &lt;/ul&gt;
 
-
 &lt;p&gt;域名的配置部分完成，跪谢方校长。&lt;/p&gt;
 
 &lt;h2&gt;配置和使用Github&lt;/h2&gt;
@@ -1192,45 +1198,37 @@ System.out.println(Integer.valueOf(129) == Integer.valueOf(129));
 &lt;p&gt;下载安装客户端之后，各个系统的配置就类似了，我们使用windows作为例子，Linux和Mac与此类似。&lt;/p&gt;
 
 &lt;p&gt;在Windows下，打开Git Bash，其他系统下面则打开终端（Terminal）：
-&lt;img src=&quot;/images/githubpages/bootcamp_1_win_gitbash.jpg&quot; alt=&quot;Git Bash&quot; /&gt;&lt;/p&gt;
+&lt;img src=&quot;/images/githubpages/bootcamp_1_win_gitbash.jpg&quot; alt=&quot;Git Bash&quot;&gt;&lt;/p&gt;
 
 &lt;h3&gt;1、检查SSH keys的设置&lt;/h3&gt;
 
 &lt;p&gt;首先我们需要检查你电脑上现有的ssh key：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ cd ~/.ssh
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;$ cd ~/.ssh
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;如果显示“No such file or directory”，跳到第三步，否则继续。&lt;/p&gt;
 
 &lt;h3&gt;2、备份和移除原来的ssh key设置：&lt;/h3&gt;
 
 &lt;p&gt;因为已经存在key文件，所以需要备份旧的数据并删除：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ ls
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;$ ls
 config  id_rsa  id_rsa.pub  known_hosts
 $ mkdir key_backup
 $ cp id_rsa* key_backup
 $ rm id_rsa*
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;h3&gt;3、生成新的SSH Key：&lt;/h3&gt;
 
 &lt;p&gt;输入下面的代码，就可以生成新的key文件，我们只需要默认设置就好，所以当需要输入文件名的时候，回车就好。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ ssh-keygen -t rsa -C &quot;邮件地址@youremail.com&quot;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;$ ssh-keygen -t rsa -C &amp;quot;邮件地址@youremail.com&amp;quot;
 Generating public/private rsa key pair.
 Enter file in which to save the key (/Users/your_user_directory/.ssh/id_rsa):&amp;lt;回车就好&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;然后系统会要你输入加密串（&lt;a href=&quot;http://help.github.com/ssh-key-passphrases/&quot;&gt;Passphrase&lt;/a&gt;）：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;Enter passphrase (empty for no passphrase):&amp;lt;输入加密串&amp;gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;Enter passphrase (empty for no passphrase):&amp;lt;输入加密串&amp;gt;
 Enter same passphrase again:&amp;lt;再次输入加密串&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;最后看到这样的界面，就成功设置ssh key了：
-&lt;img src=&quot;/images/githubpages/ssh-key-set.png&quot; alt=&quot;ssh key success&quot; /&gt;&lt;/p&gt;
+&lt;img src=&quot;/images/githubpages/ssh-key-set.png&quot; alt=&quot;ssh key success&quot;&gt;&lt;/p&gt;
 
 &lt;h3&gt;4、添加SSH Key到GitHub：&lt;/h3&gt;
 
@@ -1239,57 +1237,47 @@ Enter same passphrase again:&amp;lt;再次输入加密串&amp;gt;
 &lt;p&gt;用文本编辑工具打开id_rsa.pub文件，如果看不到这个文件，你需要设置显示隐藏文件。准确的复制这个文件的内容，才能保证设置的成功。&lt;/p&gt;
 
 &lt;p&gt;在GitHub的主页上点击设置按钮：
-&lt;img src=&quot;/images/githubpages/github-account-setting.png&quot; alt=&quot;github account setting&quot; /&gt;&lt;/p&gt;
+&lt;img src=&quot;/images/githubpages/github-account-setting.png&quot; alt=&quot;github account setting&quot;&gt;&lt;/p&gt;
 
 &lt;p&gt;选择SSH Keys项，把复制的内容粘贴进去，然后点击Add Key按钮即可：
-&lt;img src=&quot;/images/githubpages/bootcamp_1_ssh.jpg&quot; alt=&quot;set ssh keys&quot; /&gt;&lt;/p&gt;
+&lt;img src=&quot;/images/githubpages/bootcamp_1_ssh.jpg&quot; alt=&quot;set ssh keys&quot;&gt;&lt;/p&gt;
 
-&lt;p&gt;PS：如果需要配置多个GitHub账号，可以参看这个&lt;a href=&quot;http://omiga.org/blog/archives/2269&quot;&gt;多个github帐号的SSH key切换&lt;/a&gt;，不过需要提醒一下的是，如果你只是通过这篇文章中所述配置了Host，那么你多个账号下面的提交用户会是一个人，所以需要通过命令&lt;code&gt;git config --global --unset user.email&lt;/code&gt;删除用户账户设置，在每一个repo下面使用&lt;code&gt;git config --local user.email &#39;你的github邮箱@mail.com&#39;&lt;/code&gt; 命令单独设置用户账户信息&lt;/p&gt;
+&lt;p&gt;PS：如果需要配置多个GitHub账号，可以参看这个&lt;a href=&quot;http://omiga.org/blog/archives/2269&quot;&gt;多个github帐号的SSH key切换&lt;/a&gt;，不过需要提醒一下的是，如果你只是通过这篇文章中所述配置了Host，那么你多个账号下面的提交用户会是一个人，所以需要通过命令&lt;code&gt;git config --global --unset user.email&lt;/code&gt;删除用户账户设置，在每一个repo下面使用&lt;code&gt;git config --local user.email &amp;#39;你的github邮箱@mail.com&amp;#39;&lt;/code&gt; 命令单独设置用户账户信息&lt;/p&gt;
 
 &lt;h3&gt;5、测试一下&lt;/h3&gt;
 
 &lt;p&gt;可以输入下面的命令，看看设置是否成功，&lt;code&gt;git@github.com&lt;/code&gt;的部分不要修改：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ ssh -T git@github.com
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;$ ssh -T git@github.com
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;如果是下面的反应：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;The authenticity of host &#39;github.com (207.97.227.239)&#39; can&#39;t be established.
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;The authenticity of host &amp;#39;github.com (207.97.227.239)&amp;#39; can&amp;#39;t be established.
 RSA key fingerprint is 16:27:ac:a5:76:28:2d:36:63:1b:56:4d:eb:df:a6:48.
 Are you sure you want to continue connecting (yes/no)?
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;不要紧张，输入&lt;code&gt;yes&lt;/code&gt;就好，然后会看到：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;Hi &amp;lt;em&amp;gt;username&amp;lt;/em&amp;gt;! You&#39;ve successfully authenticated, but GitHub does not provide shell access.
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;Hi &amp;lt;em&amp;gt;username&amp;lt;/em&amp;gt;! You&amp;#39;ve successfully authenticated, but GitHub does not provide shell access.
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;h3&gt;6、设置你的账号信息&lt;/h3&gt;
 
 &lt;p&gt;现在你已经可以通过SSH链接到GitHub了，还有一些个人信息需要完善的。&lt;/p&gt;
 
 &lt;p&gt;Git会根据用户的名字和邮箱来记录提交。GitHub也是用这些信息来做权限的处理，输入下面的代码进行个人信息的设置，把名称和邮箱替换成你自己的，名字必须是你的真名，而不是GitHub的昵称。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ git config --global user.name &quot;你的名字&quot;
-$ git config --global user.email &quot;your_email@youremail.com&quot;
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;$ git config --global user.name &amp;quot;你的名字&amp;quot;
+$ git config --global user.email &amp;quot;your_email@youremail.com&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;h4&gt;设置GitHub的token&lt;/h4&gt;
 
 &lt;p&gt;2012-4-28补充：新版的接口已经不需要配置token了，所以下面这段可以跳过了&lt;/p&gt;
 
 &lt;p&gt;有些工具没有通过SSH来链接GitHub。如果要使用这类工具，你需要找到然后设置你的API Token。&lt;/p&gt;
 
-&lt;p&gt;在GitHub上，你可以点击&lt;em&gt;Account Setting &gt; Account Admin&lt;/em&gt;：
-&lt;img src=&quot;/images/githubpages/bootcamp_1_token.jpg&quot; alt=&quot;set ssh keys&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;在GitHub上，你可以点击&lt;em&gt;Account Setting &amp;gt; Account Admin&lt;/em&gt;：
+&lt;img src=&quot;/images/githubpages/bootcamp_1_token.jpg&quot; alt=&quot;set ssh keys&quot;&gt;&lt;/p&gt;
 
 &lt;p&gt;然后在你的命令行中，输入下面的命令，把token添加进去：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ git config --global user.name &quot;你的名字&quot;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;$ git config --global user.name &amp;quot;你的名字&amp;quot;
 $ git config --global user.token 0123456789your123456789token
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;如果你改了GitHub的密码，需要重新设置token。&lt;/p&gt;
 
 &lt;h3&gt;成功了&lt;/h3&gt;
@@ -1303,9 +1291,9 @@ $ git config --global user.token 0123456789your123456789token
 &lt;h3&gt;User &amp;amp; Organization Pages&lt;/h3&gt;
 
 &lt;p&gt;想建立个人博客是用的第一种，形如&lt;code&gt;beiyuu.github.com&lt;/code&gt;这样的可访问的站，每个用户名下面只能建立一个，创建之后点击&lt;code&gt;Admin&lt;/code&gt;进入项目管理，可以看到是这样的：
-&lt;img src=&quot;/images/githubpages/user-pages.png&quot; alt=&quot;user pages&quot; /&gt;
+&lt;img src=&quot;/images/githubpages/user-pages.png&quot; alt=&quot;user pages&quot;&gt;
 而普通的项目是这样的，即使你也是用的&lt;code&gt;othername.github.com&lt;/code&gt;：
-&lt;img src=&quot;/images/githubpages/other-pages.png&quot; alt=&quot;other pages&quot; /&gt;&lt;/p&gt;
+&lt;img src=&quot;/images/githubpages/other-pages.png&quot; alt=&quot;other pages&quot;&gt;&lt;/p&gt;
 
 &lt;p&gt;创建好&lt;code&gt;username.github.com&lt;/code&gt;项目之后，提交一个&lt;code&gt;index.html&lt;/code&gt;文件，然后&lt;code&gt;push&lt;/code&gt;到GitHub的&lt;code&gt;master&lt;/code&gt;分支（也就是普通意义上的主干）。第一次页面生效需要一些时间，大概10分钟左右。&lt;/p&gt;
 
@@ -1316,15 +1304,11 @@ $ git config --global user.token 0123456789your123456789token
 &lt;h3&gt;绑定域名&lt;/h3&gt;
 
 &lt;p&gt;我们在第一部分就提到了在DNS部分的设置，再来看在GitHub的配置，要想让&lt;code&gt;username.github.com&lt;/code&gt;能通过你自己的域名来访问，需要在项目的根目录下新建一个名为&lt;code&gt;CNAME&lt;/code&gt;的文件，文件内容形如：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;beiyuu.com
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;beiyuu.com
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;你也可以绑定在二级域名上：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;blog.beiyuu.com
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;blog.beiyuu.com
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;需要提醒的一点是，如果你使用形如&lt;code&gt;beiyuu.com&lt;/code&gt;这样的一级域名的话，需要在DNS处设置A记录到&lt;code&gt;207.97.227.245&lt;/code&gt;（&lt;strong&gt;此处每个人的地址都不同，需要根据Github提供的地址自行修改&lt;/strong&gt;），而不是在DNS处设置为CNAME的形式，否则可能会对其他服务（比如email）造成影响。&lt;/p&gt;
 
 &lt;p&gt;设置成功后，根据DNS的情况，最长可能需要一天才能生效，耐心等待吧。&lt;/p&gt;
@@ -1340,8 +1324,7 @@ $ git config --global user.token 0123456789your123456789token
 &lt;p&gt;Jekyll的核心其实就是一个文本的转换引擎，用你最喜欢的标记语言写文档，可以是Markdown、Textile或者HTML等等，再通过&lt;code&gt;layout&lt;/code&gt;将文档拼装起来，根据你设置的URL规则来展现，这些都是通过严格的配置文件来定义，最终的产出就是web页面。&lt;/p&gt;
 
 &lt;p&gt;基本的Jekyll结构如下：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;|-- _config.yml
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;|-- _config.yml
 |-- _includes
 |-- _layouts
 |   |-- default.html
@@ -1351,8 +1334,7 @@ $ git config --global user.token 0123456789your123456789token
 |   `-- 2009-04-26-barcamp-boston-4-roundup.textile
 |-- _site
 `-- index.html
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;简单介绍一下他们的作用：&lt;/p&gt;
 
 &lt;h4&gt;_config.yml&lt;/h4&gt;
@@ -1395,7 +1377,6 @@ $ git config --global user.token 0123456789your123456789token
 &lt;li&gt;&lt;code&gt;i-day&lt;/code&gt; 文件名中的除去前缀0的日期&lt;/li&gt;
 &lt;/ul&gt;
 
-
 &lt;p&gt;看看最终的配置效果：&lt;/p&gt;
 
 &lt;ul&gt;
@@ -1404,26 +1385,22 @@ $ git config --global user.token 0123456789your123456789token
 &lt;li&gt;&lt;code&gt;permalink: /blog/:year/:month/:day/:title&lt;/code&gt; /blog/2009/04/29/slap-chop/index.html&lt;/li&gt;
 &lt;/ul&gt;
 
-
 &lt;p&gt;我使用的是：&lt;/p&gt;
 
 &lt;ul&gt;
 &lt;li&gt;&lt;code&gt;permalink: /:title&lt;/code&gt; /github-pages&lt;/li&gt;
 &lt;/ul&gt;
 
-
 &lt;p&gt;自定义项的内容，例如我们定义了&lt;code&gt;title:BeiYuu的博客&lt;/code&gt;这样一项，那么你就可以在文章中使用&lt;code&gt;{ { site.title }}&lt;/code&gt;来引用这个变量了，非常方便定义些全局变量。&lt;/p&gt;
 
 &lt;h3&gt;YAML Front Matter和模板变量&lt;/h3&gt;
 
 &lt;p&gt;对于使用YAML定义格式的文章，Jekyll会特别对待，他的格式要求比较严格，必须是这样的形式：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;---
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;---
 layout: post
 title: Blogging Like a Hacker
 ---
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;前后的&lt;code&gt;---&lt;/code&gt;不能省略，在这之间，你可以定一些你需要的变量，layout就是调用&lt;code&gt;_layouts&lt;/code&gt;下面的某一个模板，他还有一些其他的变量可以使用：&lt;/p&gt;
 
 &lt;ul&gt;
@@ -1432,7 +1409,6 @@ title: Blogging Like a Hacker
 &lt;li&gt;&lt;code&gt;category&lt;/code&gt; 设置文章的分类&lt;/li&gt;
 &lt;li&gt;&lt;code&gt;tags&lt;/code&gt; 设置文章的tag&lt;/li&gt;
 &lt;/ul&gt;
-
 
 &lt;p&gt;上面的&lt;code&gt;title&lt;/code&gt;就是自定义的内容，你也可以设置其他的内容，在文章中可以通过&lt;code&gt;{ { page.title }}&lt;/code&gt;这样的形式调用。&lt;/p&gt;
 
@@ -1445,36 +1421,32 @@ title: Blogging Like a Hacker
 &lt;p&gt;现在专做评论模块的产品有很多，比如&lt;a href=&quot;http://disqus.com/&quot;&gt;Disqus&lt;/a&gt;，还有国产的&lt;a href=&quot;http://duoshuo.com/&quot;&gt;多说&lt;/a&gt;，Disqus对现在各种系统的支持都比较全面，到写博客为止，多说现在仅是WordPress的一个插件，所以我这里暂时也使用不了，多说与国内的社交网络紧密结合，还是有很多亮点的，值得期待一下。我先选择了Disqus。&lt;/p&gt;
 
 &lt;p&gt;注册账号什么的就不提了，Disqus支持很多的博客平台，参见下图：
-&lt;img src=&quot;/images/githubpages/disqus-site.jpg&quot; alt=&quot;Disqus sites&quot; /&gt;&lt;/p&gt;
+&lt;img src=&quot;/images/githubpages/disqus-site.jpg&quot; alt=&quot;Disqus sites&quot;&gt;&lt;/p&gt;
 
 &lt;p&gt;我们选择最下面的&lt;code&gt;Universal Code&lt;/code&gt;就好，然后会看到一个介绍页面，把下面这段代码复制到你的模板里面，可以只复制到显示文章的模板中：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;div id=&quot;disqus_thread&quot;&amp;gt;&amp;lt;/div&amp;gt;
-&amp;lt;script type=&quot;text/javascript&quot;&amp;gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&amp;lt;div id=&amp;quot;disqus_thread&amp;quot;&amp;gt;&amp;lt;/div&amp;gt;
+&amp;lt;script type=&amp;quot;text/javascript&amp;quot;&amp;gt;
     /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
-    var disqus_shortname = &#39;example&#39;; // required: replace example with your forum shortname 这个地方需要改成你配置的网站名
+    var disqus_shortname = &amp;#39;example&amp;#39;; // required: replace example with your forum shortname 这个地方需要改成你配置的网站名
 
-    /* * * DON&#39;T EDIT BELOW THIS LINE * * */
+    /* * * DON&amp;#39;T EDIT BELOW THIS LINE * * */
     (function() {
-        var dsq = document.createElement(&#39;script&#39;); dsq.type = &#39;text/javascript&#39;; dsq.async = true;
-        dsq.src = &#39;http://&#39; + disqus_shortname + &#39;.disqus.com/embed.js&#39;;
-        (document.getElementsByTagName(&#39;head&#39;)[0] || document.getElementsByTagName(&#39;body&#39;)[0]).appendChild(dsq);
+        var dsq = document.createElement(&amp;#39;script&amp;#39;); dsq.type = &amp;#39;text/javascript&amp;#39;; dsq.async = true;
+        dsq.src = &amp;#39;http://&amp;#39; + disqus_shortname + &amp;#39;.disqus.com/embed.js&amp;#39;;
+        (document.getElementsByTagName(&amp;#39;head&amp;#39;)[0] || document.getElementsByTagName(&amp;#39;body&amp;#39;)[0]).appendChild(dsq);
     })();
 &amp;lt;/script&amp;gt;
-&amp;lt;noscript&amp;gt;Please enable JavaScript to view the &amp;lt;a href=&quot;http://disqus.com/?ref_noscript&quot;&amp;gt;comments powered by Disqus.&amp;lt;/a&amp;gt;&amp;lt;/noscript&amp;gt;
-&amp;lt;a href=&quot;http://disqus.com&quot; class=&quot;dsq-brlink&quot;&amp;gt;blog comments powered by &amp;lt;span class=&quot;logo-disqus&quot;&amp;gt;Disqus&amp;lt;/span&amp;gt;&amp;lt;/a&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
+&amp;lt;noscript&amp;gt;Please enable JavaScript to view the &amp;lt;a href=&amp;quot;http://disqus.com/?ref_noscript&amp;quot;&amp;gt;comments powered by Disqus.&amp;lt;/a&amp;gt;&amp;lt;/noscript&amp;gt;
+&amp;lt;a href=&amp;quot;http://disqus.com&amp;quot; class=&amp;quot;dsq-brlink&amp;quot;&amp;gt;blog comments powered by &amp;lt;span class=&amp;quot;logo-disqus&amp;quot;&amp;gt;Disqus&amp;lt;/span&amp;gt;&amp;lt;/a&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;配置完之后，你也可以做一些异步加载的处理，提高性能，比如我就在最开始页面打开的时候不显示评论，当你想看评论的时候，点击“显示评论”再加载Disqus的模块。代码很简单，你可以参考我的写法。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$(&#39;#disqus_container .comment&#39;).on(&#39;click&#39;,function(){
-        $(this).html(&#39;加载中...&#39;);
-        var disqus_shortname = &#39;beiyuu&#39;;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;$(&amp;#39;#disqus_container .comment&amp;#39;).on(&amp;#39;click&amp;#39;,function(){
+        $(this).html(&amp;#39;加载中...&amp;#39;);
+        var disqus_shortname = &amp;#39;beiyuu&amp;#39;;
         var that = this;
-        BYB.includeScript(&#39;http://&#39; + disqus_shortname + &#39;.disqus.com/embed.js&#39;,function(){$(that).remove()}); //这是一个加载js的函数
+        BYB.includeScript(&amp;#39;http://&amp;#39; + disqus_shortname + &amp;#39;.disqus.com/embed.js&amp;#39;,function(){$(that).remove()}); //这是一个加载js的函数
 });
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;如果你不喜欢Disqus的样式，你也可以根据他生成的HTML结构，自己改写样式覆盖它的，Disqus现在也提供每个页面的评论数接口，&lt;a href=&quot;http://docs.disqus.com/developers/universal/&quot;&gt;帮助文档&lt;/a&gt;在这里可以看到。&lt;/p&gt;
 
 &lt;h2&gt;代码高亮插件&lt;/h2&gt;
@@ -1488,41 +1460,27 @@ title: Blogging Like a Hacker
 &lt;p&gt;这里主要介绍一下在Mac OS X下面的安装过程，其他操作系统可以参考官方的&lt;a href=&quot;https://github.com/mojombo/jekyll/wiki/Install&quot;&gt;jekyll安装&lt;/a&gt;。&lt;/p&gt;
 
 &lt;p&gt;作为生活在水深火热的墙内人民，有必要进行下面一步修改gem的源，方便我们更快的下载所需组建：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;sudo gem sources --remove http://rubygems.org/ 
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;sudo gem sources --remove http://rubygems.org/ 
 sudo gem sources -a http://ruby.taobao.org/ 
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;然后用Gem安装jekyll&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ gem install jekyll
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;$ gem install jekyll
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;不过一般如果有出错提示，你可能需要这样安装：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ sudo gem install jekyll
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;$ sudo gem install jekyll
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;如果这个时候出现gem找不到，则要安装ruby&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;sudo apt-get install ruby1.9.1-dev
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;sudo apt-get install ruby1.9.1-dev
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;我到了这一步的时候总是提示错误&lt;code&gt;Failed to build gem native extension&lt;/code&gt;，很可能的一个原因是没有安装rvm，&lt;a href=&quot;https://rvm.io/rvm/install/&quot;&gt;rvm的安装&lt;/a&gt;可以参考这里，或者敲入下面的命令：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ curl -L https://get.rvm.io | bash -s stable --ruby
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;$ curl -L https://get.rvm.io | bash -s stable --ruby
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;然后还需要安装Markdown的解释器，这个需要在你的_config.yml里面设置&lt;code&gt;markdown:rdiscount&lt;/code&gt;：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ gem install jekyll rdiscount
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;$ gem install jekyll rdiscount
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;好了，如果一切顺利的话，本地环境就基本搭建完成了，进入之前我们建立的博客目录，运行下面的命令：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ jekyll --server
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;$ jekyll --server
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;这个时候，你就可以通过&lt;code&gt;localhost:4000&lt;/code&gt;来访问了。还有关于&lt;a href=&quot;http://jekyllbootstrap.com/&quot;&gt;jekyll bootstrap&lt;/a&gt;的资料，需要自己修改调试的，可以研究一下。&lt;/p&gt;
 
 &lt;p&gt;我在这个过程中还遇到两个诡异的没有解决的问题，一个是我放在根目录下面的blog.md等文件，在GitHub的pages服务上一切正常，可以通过&lt;code&gt;beiyuu.com/blog&lt;/code&gt;访问的到，但是在本地环境下，总是&lt;code&gt;not found&lt;/code&gt;，很是让人郁闷，看生成的&lt;code&gt;_site&lt;/code&gt;目录下面的文件，也是正常的&lt;code&gt;blog.html&lt;/code&gt;，但就是找不到，只有当我把URL改为&lt;code&gt;localhost:4000/blog.html&lt;/code&gt;的时候，才能访问的到，环境不同真糟糕。&lt;/p&gt;
@@ -1536,9 +1494,8 @@ sudo gem sources -a http://ruby.taobao.org/
 &lt;p&gt;由于jekyll是用ruby语言写的一个静态网页生成工具，所以要搭建jekyll本地环境就需要先配置好ruby环境。&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;配置ruby环境&lt;/li&gt;
+&lt;li&gt;  配置ruby环境&lt;/li&gt;
 &lt;/ul&gt;
-
 
 &lt;p&gt;由于jekyll是用ruby语言写的一个静态网页生成工具，所以要搭建jekyll本地环境就需要先配置好ruby环境。&lt;/p&gt;
 
@@ -1549,48 +1506,38 @@ sudo gem sources -a http://ruby.taobao.org/
 &lt;p&gt;3）鉴于本人是初学者吧，而且官方推荐不知道如何安装的，就选择RubyInstaller（这种安装方式除 Ruby 之外，捆绑一些额外的资源库。）。所以上面两步就略过了，呵呵，下载了“rubyinstaller-1.9.3-p429.exe”，记得安装的时候选上“Add Ruby executables to your PATH”（添加系统环境变量），我这里安装到了C:\Ruby下&lt;/p&gt;
 
 &lt;p&gt;4）下载DevKit，解压进行执行相关命令（至于为啥，我还不懂，这个是win系统下必要的步骤）。我解压到了C:\devkit下，打开cmd，切换到C:\devkit下，分步执行如下红色字样命令，出现如下提示表示安装成功了：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;C:\&amp;gt;cd devkit
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;C:\&amp;gt;cd devkit
 
 C:\devkit&amp;gt;ruby dk.rb init
 [INFO] found RubyInstaller v1.9.3 at C:/Ruby
 
 Initialization complete! Please review and modify the auto-generated
-&#39;config.yml&#39; file to ensure it contains the root directories to all
+&amp;#39;config.yml&amp;#39; file to ensure it contains the root directories to all
 of the installed Rubies you want enhanced by the DevKit.
 
 C:\devkit&amp;gt;ruby dk.rb install
-[INFO] Updating convenience notice gem override for &#39;C:/Ruby&#39;
-[INFO] Installing &#39;C:/Ruby/lib/ruby/site_ruby/devkit.rb&#39;
-&lt;/code&gt;&lt;/pre&gt;
-
+[INFO] Updating convenience notice gem override for &amp;#39;C:/Ruby&amp;#39;
+[INFO] Installing &amp;#39;C:/Ruby/lib/ruby/site_ruby/devkit.rb&amp;#39;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;ul&gt;
-&lt;li&gt;安装jekyll&lt;/li&gt;
+&lt;li&gt;  安装jekyll&lt;/li&gt;
 &lt;/ul&gt;
 
-
 &lt;p&gt;打开cmd，执行如下红色字样命令（gem命令已在系统环境中，后面的jekyll亦如此），出现如下类似信息表示安装成功（这里会安装jekyll所依赖的东西，由于是联网安装，所以存在连接速度等网络问题，如果出现错误，在确认前面安装步骤正常的情况下请多尝试，耐心等待！！！事后添加[2013-10-08]：修改gem命令代码源为ruby.taobao.org速度应该会较快的，具体设置见：&lt;a href=&quot;http://ruby.taobao.org/&quot;&gt;http://ruby.taobao.org&lt;/a&gt;）：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;C:\&amp;gt;gem install jekyll rdiscount
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;C:\&amp;gt;gem install jekyll rdiscount
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;这一步跟Mac OS X差不多。&lt;/p&gt;
 
 &lt;p&gt;查看版本：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;jekyll -v
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;jekyll -v
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;ul&gt;
-&lt;li&gt;使用jekyll创建网站并运行&lt;/li&gt;
+&lt;li&gt;  使用jekyll创建网站并运行&lt;/li&gt;
 &lt;/ul&gt;
 
-
 &lt;p&gt;切换到jekyll目录，执行&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;jekyll serve
-&lt;/code&gt;&lt;/pre&gt;
-
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;jekyll serve
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;然后通过http://localhost:4000来访问即可。&lt;/p&gt;
 
 &lt;h2&gt;结语&lt;/h2&gt;

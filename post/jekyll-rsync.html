@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="/css/violet.css" type="text/css" />
     <link rel="alternate" type="application/atom+xml" title="Recent Entries" href="http://feeds.feedburner.com/jachohx" />
     <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+    <link href="/css/pygments.css" rel="stylesheet">
     <script type="text/javascript">
 
   var _gaq = _gaq || [];
@@ -82,32 +83,24 @@
 
 <!--more-->
 
-
 <p>upload.bat脚本：</p>
-
-<pre><code>bin\rsync -av /blog/src/ user@ip::blog
-</code></pre>
-
+<div class="highlight"><pre><code class="language-text" data-lang="text">bin\rsync -av /blog/src/ user@ip::blog
+</code></pre></div>
 <p>blog是在vps上的/etc/rsyncd.conf上加上</p>
-
-<pre><code>[blog]
+<div class="highlight"><pre><code class="language-text" data-lang="text">[blog]
 path=/var/www/blog/src
 read only=false
 auth users=user
-</code></pre>
-
+</code></pre></div>
 <p>down.bat</p>
-
-<pre><code>bin\rsync -av rsync@216.18.193.125::blog /blog/src/
-</code></pre>
-
+<div class="highlight"><pre><code class="language-text" data-lang="text">bin\rsync -av rsync@216.18.193.125::blog /blog/src/
+</code></pre></div>
 <p>upload.bat与down.bat文件放在rsync的bin同级目录，且当前有/src/blog目录</p>
 
 <p>现在的问题是，如何在vps上把post文件生成静态文件，然后再上传到github。</p>
 
 <p>blog下的目录是这样的</p>
-
-<pre><code>|-- git (git静态文件)
+<div class="highlight"><pre><code class="language-text" data-lang="text">|-- git (git静态文件)
 |-- log (更新日志)
 |-- src (jekyll项目)
 |   |-- (jekyll配置)
@@ -116,48 +109,41 @@ auth users=user
 |-- git.sh
 |-- time
 |-- update.sh
-</code></pre>
-
+</code></pre></div>
 <p>check.sh 定时检查项目有没有更新，time记录下上一次的更新时间，update.txt是每次要提交的更新说明，如果有修改，说明有更新</p>
-
-<pre><code>cd /var/www/blog
+<div class="highlight"><pre><code class="language-text" data-lang="text">cd /var/www/blog
 time=`stat -c %Z  src/update.txt`
 last=`cat time`
 if [[ $time -ne $last ]];then
 ./update.sh
 echo $time &gt; time
 fi
-</code></pre>
-
+</code></pre></div>
 <p>update.sh 检查到有更新，用jekyll生成静态文件</p>
-
-<pre><code>base=/var/www/blog
+<div class="highlight"><pre><code class="language-text" data-lang="text">base=/var/www/blog
 cd $base/src
 jekyll
 commit=`cat update.txt`
 cd $base
 log=$base/log/git.log
 $base/git.sh $commit &gt;&gt; $log
-</code></pre>
-
+</code></pre></div>
 <p>git.sh 把静态文件的修改更新到github上</p>
-
-<pre><code>commit=$1
+<div class="highlight"><pre><code class="language-text" data-lang="text">commit=$1
 cd /var/www/blog
 cp -rf src/_site/* git/
 cd git
-echo '------------------------------'
+echo &#39;------------------------------&#39;
 echo $commit
-echo  `date  '+%Y-%m-%d %T'` 
+echo  `date  &#39;+%Y-%m-%d %T&#39;` 
 git st
 git add .
-for delfile in `git st | grep deleted | awk '{print $3}'`;do
+for delfile in `git st | grep deleted | awk &#39;{print $3}&#39;`;do
 git rm $delfile
 done
-git cm "$commit"
+git cm &quot;$commit&quot;
 git push 
-</code></pre>
-
+</code></pre></div>
 <p>OK，到这样的话就可以在windows下写md文件，且同步到github上了</p>
 
                         </div>

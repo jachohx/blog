@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="/css/violet.css" type="text/css" />
     <link rel="alternate" type="application/atom+xml" title="Recent Entries" href="http://feeds.feedburner.com/jachohx" />
     <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+    <link href="/css/pygments.css" rel="stylesheet">
     <script type="text/javascript">
 
   var _gaq = _gaq || [];
@@ -53,16 +54,35 @@
                     <div class="ui-grid-15 v-post-detail">
 						
                         <div class="v-entry">
+                            <h1 class="title" style="text-align: left; border-bottom: 1px solid #f0f0f0;"><a href="/post/facede.html">Facade类分析</a></h1>
+                            <p>Facade类在文档中的介绍是这样说的</p>
+
+<blockquote>
+<p>Facades 提供一个静态接口给在应用程序的 <a href="http://laravel-china.org/docs/5.0/container">服务容器</a> 中可以取用的类。Laravel 附带许多 facades，甚至你可能已经在不知情的状况下使用过它们！Laravel 的「facades」作为在 IoC 容器里面的基础类的静态代理，提供的语法有简洁、易表达的优点，同时维持比传统的静态方法更高的可测试性和弹性。</p>
+</blockquote>
+
+<p>说明可以查看<a href="http://laravel-china.org/docs/5.0/facades">官方文档地址</a>。</p>
+
+<p>但在官方文档里只说Facade是怎么使用，并没有说明这个类是运行情况。</p>
+
+
+                        <p class="more"><a href="/post/facede.html">更多</a></p>
+						</div>
+						
+						
+                        <div class="v-entry">
                             <h1 class="title" style="text-align: left; border-bottom: 1px solid #f0f0f0;"><a href="/post/syntax.html">Markdown语法说明</a></h1>
                             <h1>Markdown 文件</h1>
 
-<p><img src="http://markdown.tw/images/208x128.png" alt="Markdown" /></p>
+<p><img src="http://markdown.tw/images/208x128.png" alt="Markdown"></p>
 
-<p><strong>NOTE:</strong> This is Traditional Chinese Edition Document of
-Markdown Syntax. If you are seeking for English Edition
-Document. Please refer to <a href="http://daringfireball.net/projects/markdown/syntax">Markdown: Syntax</a>.</p>
+<p><strong>NOTE:</strong> This is Traditional Chinese Edition Document of</p>
 
-<p>  
+<p>Markdown Syntax. If you are seeking for English Edition </p>
+
+<p>Document. Please refer to <a href="http://daringfireball.net/projects/markdown/syntax">Markdown: Syntax</a>.</p>
+
+
                         <p class="more"><a href="/post/syntax.html">更多</a></p>
 						</div>
 						
@@ -104,11 +124,9 @@ Document. Please refer to <a href="http://daringfireball.net/projects/markdown/s
                         <div class="v-entry">
                             <h1 class="title" style="text-align: left; border-bottom: 1px solid #f0f0f0;"><a href="/post/Integer.html">Integer的自动装箱与拆箱</a></h1>
                             <p>最近看到一行代码</p>
-
-<pre><code>map.put(key, Integer.valueOf("1"));
-</code></pre>
-
-<p>Map是HashMap&lt;String, Integer>();</p>
+<div class="highlight"><pre><code class="language-text" data-lang="text">map.put(key, Integer.valueOf(&quot;1&quot;));
+</code></pre></div>
+<p>Map是HashMap<String, Integer>();</p>
 
 <p>首先这行代码效率肯定是很低的，1是数字，然后转成了字符，再转成数字。</p>
 
