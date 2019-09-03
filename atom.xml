@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>DreamCoder</title>
+  
+  
+  <link href="/atom.xml" rel="self"/>
+  
+  <link href="http://yoursite.com/"/>
+  <updated>2019-09-02T15:51:32.127Z</updated>
+  <id>http://yoursite.com/</id>
+  
+  <author>
+    <name>Jacho</name>
+    
+  </author>
+  
+  <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Mysql存储引擎</title>
+    <link href="http://yoursite.com/2016/03/14/mysql-engine/"/>
+    <id>http://yoursite.com/2016/03/14/mysql-engine/</id>
+    <published>2016-03-13T16:00:00.000Z</published>
+    <updated>2019-09-02T15:51:32.127Z</updated>
+    
+    <summary type="html">
+    
+      Mysql存储引擎。
+    
+    </summary>
+    
+    
+      <category term="tech" scheme="http://yoursite.com/categories/tech/"/>
+    
+    
+  </entry>
+  
+  <entry>
+    <title>Laravel配置文件分析</title>
+    <link href="http://yoursite.com/2016/02/03/laravel-config/"/>
+    <id>http://yoursite.com/2016/02/03/laravel-config/</id>
+    <published>2016-02-02T16:00:00.000Z</published>
+    <updated>2019-09-02T15:47:12.276Z</updated>
+    
+    <summary type="html">
+    
+      &lt;p&gt;同上一篇文章一样，社区关于介绍配置文件的文章也不多，想要了解配置文件的过程，还是要靠自己手工去查找一下。&lt;/p&gt;
+&lt;p&gt;下边是自己从源码里找到的一些关键点：&lt;/p&gt;
+    
+    </summary>
+    
+    
+      <category term="tech" scheme="http://yoursite.com/categories/tech/"/>
+    
+    
+  </entry>
+  
+  <entry>
+    <title>Laravel路由分析</title>
+    <link href="http://yoursite.com/2016/02/02/laravel-routers/"/>
+    <id>http://yoursite.com/2016/02/02/laravel-routers/</id>
+    <published>2016-02-01T16:00:00.000Z</published>
+    <updated>2019-09-02T15:45:14.347Z</updated>
+    
+    <summary type="html">
+    
+      &lt;p&gt;在Laravel的社区找了一下，没有什么文档是分析Laravel路由的。&lt;/p&gt;
+&lt;p&gt;于是想到了一个比较投巧的方式来分析。&lt;/p&gt;
+&lt;p&gt;在routes.php加上这句&lt;/p&gt;
+&lt;figure class=&quot;highlight php hljs&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;Route::controller(&lt;span class=&quot;hljs-string&quot;&gt;&#39;finance&#39;&lt;/span&gt;, &lt;span class=&quot;hljs-string&quot;&gt;&quot;FinanceController2&quot;&lt;/span&gt;);&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+    
+    </summary>
+    
+    
+      <category term="tech" scheme="http://yoursite.com/categories/tech/"/>
+    
+    
+  </entry>
+  
+  <entry>
+    <title>Facade类分析</title>
+    <link href="http://yoursite.com/2016/02/01/facede/"/>
+    <id>http://yoursite.com/2016/02/01/facede/</id>
+    <published>2016-01-31T16:00:00.000Z</published>
+    <updated>2019-09-02T15:42:42.417Z</updated>
+    
+    <summary type="html">
+    
+      &lt;p&gt;Facade类在文档中的介绍是这样说的&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Facades 提供一个静态接口给在应用程序的 &lt;a href=&quot;http://laravel-china.org/docs/5.0/container&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;服务容器&lt;/a&gt; 中可以取用的类。Laravel 附带许多 facades，甚至你可能已经在不知情的状况下使用过它们！Laravel 的「facades」作为在 IoC 容器里面的基础类的静态代理，提供的语法有简洁、易表达的优点，同时维持比传统的静态方法更高的可测试性和弹性。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;说明可以查看&lt;a href=&quot;http://laravel-china.org/docs/5.0/facades&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;官方文档地址&lt;/a&gt;。&lt;/p&gt;
+&lt;p&gt;但在官方文档里只说Facade是怎么使用，并没有说明这个类是运行情况。&lt;/p&gt;
+    
+    </summary>
+    
+    
+      <category term="tech" scheme="http://yoursite.com/categories/tech/"/>
+    
+    
+  </entry>
+  
+  <entry>
+    <title>网站改造</title>
+    <link href="http://yoursite.com/2015/06/01/huya/"/>
+    <id>http://yoursite.com/2015/06/01/huya/</id>
+    <published>2015-05-31T16:00:00.000Z</published>
+    <updated>2019-09-02T15:41:10.438Z</updated>
+    
+    <summary type="html">
+    
+      &lt;h2 id=&quot;背景&quot;&gt;&lt;a href=&quot;#背景&quot; class=&quot;headerlink&quot; title=&quot;背景&quot;&gt;&lt;/a&gt;背景&lt;/h2&gt;&lt;p&gt;虎牙网站经过几年的发展，已经达到了千万PV级别的网站，业务也越来越多，提供的数据也越来越多，传统的MVC模式已经越来越不适合业务的发展，所以要对网站进行模块分隔。&lt;/p&gt;
+&lt;p&gt;一个应用发展到了一定级别的时候，就需要将应用分隔多个小的应用，从而使的应用之间的影响变得越来越小。比如，后台、用户中心、主站、第三方接口等应用。这些应用之间相互联系是很少的，而且职责都明显，完全可以独立出来做一个应用。且每个应用的的访问量也是有区别，那么可以根据不同的访问量来给应用分线程。&lt;/p&gt;
+&lt;p&gt;按应用分隔在很多的网站都已经是这样做了，在一开始的时候很多开发者就考虑这样做了，所以按应用分隔并不是什么重要的解决方案。&lt;/p&gt;
+    
+    </summary>
+    
+    
+      <category term="tech" scheme="http://yoursite.com/categories/tech/"/>
+    
+    
+  </entry>
+  
+  <entry>
+    <title>JVM工作原理</title>
+    <link href="http://yoursite.com/2015/06/01/jvm/"/>
+    <id>http://yoursite.com/2015/06/01/jvm/</id>
+    <published>2015-05-31T16:00:00.000Z</published>
+    <updated>2019-08-28T15:55:47.674Z</updated>
+    
+    <summary type="html">
+    
+      &lt;p&gt;Java 虚拟机 Java 虚拟机（Java virtual machine，JVM）是运行 Java 程序必不可少的机制。JVM实现了Java语言最重要的特征：即平台无关性。原理：编译后的 Java 程序指令并不直接在硬件系统的 CPU 上执行，而是由 JVM 执行。JVM屏蔽了与具体平台相关的信息，使Java语言编译程序只需要生成在JVM上运行的目标字节码（.class）,就可以在多种平台上不加修改地运行。Java 虚拟机在执行字节码时，把字节码解释成具体平台上的机器指令执行。因此实现java平台无关性。它是 Java 程序能在多平台间进行无缝移植的可靠保证，同时也是 Java 程序的安全检验引擎（还进行安全检查）。&lt;/p&gt;
+&lt;p&gt;JVM 是 编译后的 Java 程序（.class文件）和硬件系统之间的接口 （ 编译后：javac 是收录于 JDK 中的 Java 语言编译器。该工具可以将后缀名为. java 的源文件编译为后缀名为. class 的可以运行于 Java 虚拟机的字节码。）&lt;/p&gt;
+    
+    </summary>
+    
+    
+      <category term="tech" scheme="http://yoursite.com/categories/tech/"/>
+    
+    
+  </entry>
+  
+  <entry>
+    <title>Markdown语法说明</title>
+    <link href="http://yoursite.com/2014/10/21/syntax/"/>
+    <id>http://yoursite.com/2014/10/21/syntax/</id>
+    <published>2014-10-20T16:00:00.000Z</published>
+    <updated>2016-02-17T07:59:51.000Z</updated>
+    
+    <summary type="html">
+    
+      Markdown语法说明
+    
+    </summary>
+    
+    
+      <category term="tech" scheme="http://yoursite.com/categories/tech/"/>
+    
+    
+  </entry>
+  
+  <entry>
+    <title>秒杀系统</title>
+    <link href="http://yoursite.com/2014/06/01/lottery/"/>
+    <id>http://yoursite.com/2014/06/01/lottery/</id>
+    <published>2014-05-31T16:00:00.000Z</published>
+    <updated>2019-09-02T15:40:35.400Z</updated>
+    
+    <summary type="html">
+    
+      &lt;h2 id=&quot;背景&quot;&gt;&lt;a href=&quot;#背景&quot; class=&quot;headerlink&quot; title=&quot;背景&quot;&gt;&lt;/a&gt;背景&lt;/h2&gt;&lt;p&gt;奖品是提前插入到数据库，大概有上百万。&lt;/p&gt;
+&lt;p&gt;每个奖品的字段有&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;id。&lt;/strong&gt;奖品ID&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;name。&lt;/strong&gt;奖品名称&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;startTime。&lt;/strong&gt;奖品领取时间&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;status。&lt;/strong&gt;奖品状态，0：未领，1：已领。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;uid。&lt;/strong&gt;领取的用户ID。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;updateTime。&lt;/strong&gt;奖品更新时间。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;需要返回奖品id、name。&lt;/p&gt;
+    
+    </summary>
+    
+    
+    
+      <category term="tech" scheme="http://yoursite.com/tags/tech/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Eclipse下将项目增加maven配置</title>
+    <link href="http://yoursite.com/2013/03/07/eclipse-maven/"/>
+    <id>http://yoursite.com/2013/03/07/eclipse-maven/</id>
+    <published>2013-03-06T16:00:00.000Z</published>
+    <updated>2016-02-17T07:59:51.000Z</updated>
+    
+    <summary type="html">
+    
+      Eclipse下将项目增加maven配置
+    
+    </summary>
+    
+    
+      <category term="tech" scheme="http://yoursite.com/categories/tech/"/>
+    
+    
+      <category term="eclipse" scheme="http://yoursite.com/tags/eclipse/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>用vps写jekyll</title>
+    <link href="http://yoursite.com/2013/02/06/jekyll-rsync/"/>
+    <id>http://yoursite.com/2013/02/06/jekyll-rsync/</id>
+    <published>2013-02-05T16:00:00.000Z</published>
+    <updated>2016-02-17T07:59:51.000Z</updated>
+    
+    <summary type="html">
+    
+      用rsync同步post文件到vps,再提交静态页面到github
+    
+    </summary>
+    
+    
+      <category term="tech" scheme="http://yoursite.com/categories/tech/"/>
+    
+    
+      <category term="shell" scheme="http://yoursite.com/tags/shell/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Integer的自动装箱与拆箱</title>
+    <link href="http://yoursite.com/2012/11/16/Integer/"/>
+    <id>http://yoursite.com/2012/11/16/Integer/</id>
+    <published>2012-11-15T16:00:00.000Z</published>
+    <updated>2019-09-02T15:31:32.450Z</updated>
+    
+    <summary type="html">
+    
+      &lt;p&gt;最近看到一行代码&lt;/p&gt;
+&lt;figure class=&quot;highlight java hljs&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;map.put(key, Integer.valueOf(&lt;span class=&quot;hljs-string&quot;&gt;&quot;1&quot;&lt;/span&gt;));&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+
+&lt;p&gt;Map是HashMap&amp;lt;String, Integer&amp;gt;();&lt;/p&gt;
+&lt;p&gt;首先这行代码效率肯定是很低的，1是数字，然后转成了字符，再转成数字。&lt;/p&gt;
+&lt;p&gt;首先，既然是数字，那么就没有必要用“1”了，直接Integer.valueOf(1)就可以了。&lt;/p&gt;
+&lt;p&gt;最简单的写法是1。&lt;/p&gt;
+&lt;p&gt;但考虑到自动装箱boxing 是在JDK1.5后才有的，所以1.4还是要用new Integer(1)或Integer(1)。&lt;/p&gt;
+    
+    </summary>
+    
+    
+      <category term="tech" scheme="http://yoursite.com/categories/tech/"/>
+    
+    
+      <category term="java" scheme="http://yoursite.com/tags/java/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>使用Github Pages建独立博客</title>
+    <link href="http://yoursite.com/2012/10/11/github-pages/"/>
+    <id>http://yoursite.com/2012/10/11/github-pages/</id>
+    <published>2012-10-10T16:00:00.000Z</published>
+    <updated>2019-08-29T16:02:45.529Z</updated>
+    
+    <summary type="html">
+    
+      Github本身就是不错的代码社区，他也提供了一些其他的服务，比如Github Pages，使用它可以很方便的建立自己的独立博客，并且免费。
+    
+    </summary>
+    
+    
+      <category term="tech" scheme="http://yoursite.com/categories/tech/"/>
+    
+    
+  </entry>
+  
+</feed>

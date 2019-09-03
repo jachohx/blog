@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html  lang="zh">
+<head>
+    <meta charset="utf-8" />
+
+<meta name="generator" content="Hexo 3.9.0" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+
+<title>Facade类分析 - DreamCoder</title>
+
+
+    <meta name="description" content="Facade类在文档中的介绍是这样说的  Facades 提供一个静态接口给在应用程序的 服务容器 中可以取用的类。Laravel 附带许多 facades，甚至你可能已经在不知情的状况下使用过它们！Laravel 的「facades」作为在 IoC 容器里面的基础类的静态代理，提供的语法有简洁、易表达的优点，同时维持比传统的静态方法更高的可测试性和弹性。  说明可以查看官方文档地址。 但在官方文">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Facade类分析">
+<meta property="og:url" content="http://yoursite.com/2016/02/01/facede/index.html">
+<meta property="og:site_name" content="DreamCoder">
+<meta property="og:description" content="Facade类在文档中的介绍是这样说的  Facades 提供一个静态接口给在应用程序的 服务容器 中可以取用的类。Laravel 附带许多 facades，甚至你可能已经在不知情的状况下使用过它们！Laravel 的「facades」作为在 IoC 容器里面的基础类的静态代理，提供的语法有简洁、易表达的优点，同时维持比传统的静态方法更高的可测试性和弹性。  说明可以查看官方文档地址。 但在官方文">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://yoursite.com/images/og_image.png">
+<meta property="og:updated_time" content="2019-09-02T15:42:42.417Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Facade类分析">
+<meta name="twitter:description" content="Facade类在文档中的介绍是这样说的  Facades 提供一个静态接口给在应用程序的 服务容器 中可以取用的类。Laravel 附带许多 facades，甚至你可能已经在不知情的状况下使用过它们！Laravel 的「facades」作为在 IoC 容器里面的基础类的静态代理，提供的语法有简洁、易表达的优点，同时维持比传统的静态方法更高的可测试性和弹性。  说明可以查看官方文档地址。 但在官方文">
+<meta name="twitter:image" content="http://yoursite.com/images/og_image.png">
+<meta name="twitter:creator" content="@jachohx">
+<meta name="twitter:site" content="https://twitter.com/jachohx">
+
+
+
+
+
+
+
+<link rel="icon" href="/images/favicon.svg">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.7.2/css/bulma.css">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.4.1/css/all.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Ubuntu:400,600|Source+Code+Pro">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@9.12.0/styles/atom-one-light.css">
+
+
+    
+    
+    
+    <style>body>.footer,body>.navbar,body>.section{opacity:0}</style>
+    
+
+    
+    
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lightgallery@1.6.8/dist/css/lightgallery.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/css/justifiedGallery.min.css">
+    
+
+    
+    
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/outdatedbrowser@1.1.5/outdatedbrowser/outdatedbrowser.min.css">
+
+
+    
+    
+    
+    
+
+<link rel="stylesheet" href="/css/back-to-top.css">
+
+
+    
+    
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-35504774-1"></script>
+<script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'UA-35504774-1');
+</script>
+
+
+    
+    
+<script>
+var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?b161285312ada2279113767da5219d60";
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+    
+    
+
+    
+    
+<link rel="stylesheet" href="/css/progressbar.css">
+<script src="https://cdn.jsdelivr.net/npm/pace-js@1.0.2/pace.min.js"></script>
+
+    
+    
+    
+
+
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="is-2-column">
+    <nav class="navbar navbar-main">
+    <div class="container">
+        <div class="navbar-brand is-flex-center">
+            <a class="navbar-item navbar-logo" href="/">
+            
+                <img src="/images/logo.png" alt="Facade类分析" height="28">
+            
+            </a>
+        </div>
+        <div class="navbar-menu">
+            
+            <div class="navbar-start">
+                
+                <a class="navbar-item"
+                href="/">主页</a>
+                
+                <a class="navbar-item"
+                href="/archives">归档</a>
+                
+                <a class="navbar-item"
+                href="/categories">分类</a>
+                
+                <a class="navbar-item"
+                href="/tags">标签</a>
+                
+                <a class="navbar-item"
+                href="/about">关于</a>
+                
+            </div>
+            
+            <div class="navbar-end">
+                
+                    
+                    
+                    <a class="navbar-item" target="_blank" title="Download on GitHub" href="https://github.com/ppoffice/hexo-theme-icarus">
+                        
+                        <i class="fab fa-github"></i>
+                        
+                    </a>
+                    
+                
+                
+                <a class="navbar-item is-hidden-tablet catalogue" title="目录" href="javascript:;">
+                    <i class="fas fa-list-ul"></i>
+                </a>
+                
+                
+                <a class="navbar-item search" title="搜索" href="javascript:;">
+                    <i class="fas fa-search"></i>
+                </a>
+                
+            </div>
+        </div>
+    </div>
+</nav>
+    
+    <section class="section">
+        <div class="container">
+            <div class="columns">
+                <div class="column is-9-tablet is-9-desktop is-9-widescreen has-order-2 column-main"><div class="card">
+    
+    <div class="card-content article ">
+        
+        <div class="level article-meta is-size-7 is-uppercase is-mobile is-overflow-x-auto">
+            <div class="level-left">
+                <time class="level-item has-text-grey" datetime="2016-01-31T16:00:00.000Z">2016-02-01</time>
+                
+                <div class="level-item">
+                <a class="has-link-grey -link" href="/categories/tech/">tech</a>
+                </div>
+                
+                
+                <span class="level-item has-text-grey">
+                    
+                    
+                    7 分钟 读完 (大约 1100 个字)
+                </span>
+                
+                
+            </div>
+        </div>
+        
+        <h1 class="title is-size-3 is-size-4-mobile has-text-weight-normal">
+            
+                Facade类分析
+            
+        </h1>
+        <div class="content">
+            <p>Facade类在文档中的介绍是这样说的</p>
+<blockquote>
+<p>Facades 提供一个静态接口给在应用程序的 <a href="http://laravel-china.org/docs/5.0/container" target="_blank" rel="noopener">服务容器</a> 中可以取用的类。Laravel 附带许多 facades，甚至你可能已经在不知情的状况下使用过它们！Laravel 的「facades」作为在 IoC 容器里面的基础类的静态代理，提供的语法有简洁、易表达的优点，同时维持比传统的静态方法更高的可测试性和弹性。</p>
+</blockquote>
+<p>说明可以查看<a href="http://laravel-china.org/docs/5.0/facades" target="_blank" rel="noopener">官方文档地址</a>。</p>
+<p>但在官方文档里只说Facade是怎么使用，并没有说明这个类是运行情况。</p>
+<a id="more"></a>
+
+<p>下边就介绍下Facade的工作过程：</p>
+<h2 id="新的Facade类"><a href="#新的Facade类" class="headerlink" title="新的Facade类"></a>新的Facade类</h2><p>在官方文档里已经有介绍了，下边以DB类为例子。</p>
+<figure class="highlight php hljs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="hljs-meta">&lt;?php</span></span><br><span class="line">	<span class="hljs-keyword">namespace</span> <span class="hljs-title">Illuminate</span>\<span class="hljs-title">Support</span>\<span class="hljs-title">Facades</span>;</span><br><span class="line">	<span class="hljs-comment">/**</span></span><br><span class="line"><span class="hljs-comment">     * <span class="hljs-doctag">@see</span> \Illuminate\Database\DatabaseManager</span></span><br><span class="line"><span class="hljs-comment">	 *<span class="hljs-doctag">@see</span> \Illuminate\Database\Connection</span></span><br><span class="line"><span class="hljs-comment">	 */</span></span><br><span class="line">	<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">DB</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Facade</span></span></span><br><span class="line"><span class="hljs-class">	</span>&#123;</span><br><span class="line">		<span class="hljs-comment">/**</span></span><br><span class="line"><span class="hljs-comment">         *Get the registered name of the component.</span></span><br><span class="line"><span class="hljs-comment">         *</span></span><br><span class="line"><span class="hljs-comment">         *<span class="hljs-doctag">@return</span> string</span></span><br><span class="line"><span class="hljs-comment">         */</span></span><br><span class="line">      <span class="hljs-keyword">protected</span> <span class="hljs-keyword">static</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getFacadeAccessor</span><span class="hljs-params">()</span></span></span><br><span class="line"><span class="hljs-function">      </span>&#123;</span><br><span class="line">        <span class="hljs-keyword">return</span> <span class="hljs-string">'db'</span>;</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里实现了Facade的getFacadeAccessor方法，这个方法的工作是返回服务容器绑定的名称。</p>
+<p>那么有一个疑问就是，DB类是怎么通过’db’取出来的。</p>
+<h2 id="静态方法加载"><a href="#静态方法加载" class="headerlink" title="静态方法加载"></a>静态方法加载</h2><p>像DB类，我们这样使用DB::select(…)，面DB类里根本就没有select这个静态方法。</p>
+<p>根据PHP这个语言特色，DB::select最终会调用Facade类的__callStatic方法</p>
+<figure class="highlight php hljs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br></pre></td><td class="code"><pre><span class="line"><span class="hljs-meta">&lt;?php</span></span><br><span class="line">	<span class="hljs-comment">/**</span></span><br><span class="line"><span class="hljs-comment">     * Get the root object behind the facade.</span></span><br><span class="line"><span class="hljs-comment">     *</span></span><br><span class="line"><span class="hljs-comment">     * <span class="hljs-doctag">@return</span> mixed</span></span><br><span class="line"><span class="hljs-comment">     */</span></span><br><span class="line">    <span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getFacadeRoot</span><span class="hljs-params">()</span></span></span><br><span class="line"><span class="hljs-function">    </span>&#123;</span><br><span class="line">        <span class="hljs-keyword">return</span> <span class="hljs-keyword">static</span>::resolveFacadeInstance(<span class="hljs-keyword">static</span>::getFacadeAccessor());</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">	<span class="hljs-comment">/**</span></span><br><span class="line"><span class="hljs-comment">     * Resolve the facade root instance from the container.</span></span><br><span class="line"><span class="hljs-comment">     *</span></span><br><span class="line"><span class="hljs-comment">     * <span class="hljs-doctag">@param</span>  string|object  $name</span></span><br><span class="line"><span class="hljs-comment">     * <span class="hljs-doctag">@return</span> mixed</span></span><br><span class="line"><span class="hljs-comment">     */</span></span><br><span class="line">    <span class="hljs-keyword">protected</span> <span class="hljs-keyword">static</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">resolveFacadeInstance</span><span class="hljs-params">($name)</span></span></span><br><span class="line"><span class="hljs-function">    </span>&#123;</span><br><span class="line">        <span class="hljs-keyword">if</span> (is_object($name)) &#123;</span><br><span class="line">            <span class="hljs-keyword">return</span> $name;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="hljs-keyword">if</span> (<span class="hljs-keyword">isset</span>(<span class="hljs-keyword">static</span>::$resolvedInstance[$name])) &#123;</span><br><span class="line">            <span class="hljs-keyword">return</span> <span class="hljs-keyword">static</span>::$resolvedInstance[$name];</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="hljs-keyword">return</span> <span class="hljs-keyword">static</span>::$resolvedInstance[$name] = <span class="hljs-keyword">static</span>::$app[$name];</span><br><span class="line">    &#125;</span><br><span class="line">	</span><br><span class="line">	<span class="hljs-comment">/**</span></span><br><span class="line"><span class="hljs-comment">     * Handle dynamic, static calls to the object.</span></span><br><span class="line"><span class="hljs-comment">     *</span></span><br><span class="line"><span class="hljs-comment">     * <span class="hljs-doctag">@param</span>  string  $method</span></span><br><span class="line"><span class="hljs-comment">     * <span class="hljs-doctag">@param</span>  array   $args</span></span><br><span class="line"><span class="hljs-comment">     * <span class="hljs-doctag">@return</span> mixed</span></span><br><span class="line"><span class="hljs-comment">     */</span></span><br><span class="line">    <span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">__callStatic</span><span class="hljs-params">($method, $args)</span></span></span><br><span class="line"><span class="hljs-function">    </span>&#123;</span><br><span class="line">        $instance = <span class="hljs-keyword">static</span>::getFacadeRoot();</span><br><span class="line"></span><br><span class="line">        <span class="hljs-keyword">if</span> (! $instance) &#123;</span><br><span class="line">            <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> RuntimeException(<span class="hljs-string">'A facade root has not been set.'</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="hljs-keyword">switch</span> (count($args)) &#123;</span><br><span class="line">            <span class="hljs-keyword">case</span> <span class="hljs-number">0</span>:</span><br><span class="line">                <span class="hljs-keyword">return</span> $instance-&gt;$method();</span><br><span class="line"></span><br><span class="line">            <span class="hljs-keyword">case</span> <span class="hljs-number">1</span>:</span><br><span class="line">                <span class="hljs-keyword">return</span> $instance-&gt;$method($args[<span class="hljs-number">0</span>]);</span><br><span class="line"></span><br><span class="line">            <span class="hljs-keyword">case</span> <span class="hljs-number">2</span>:</span><br><span class="line">                <span class="hljs-keyword">return</span> $instance-&gt;$method($args[<span class="hljs-number">0</span>], $args[<span class="hljs-number">1</span>]);</span><br><span class="line"></span><br><span class="line">            <span class="hljs-keyword">case</span> <span class="hljs-number">3</span>:</span><br><span class="line">                <span class="hljs-keyword">return</span> $instance-&gt;$method($args[<span class="hljs-number">0</span>], $args[<span class="hljs-number">1</span>], $args[<span class="hljs-number">2</span>]);</span><br><span class="line"></span><br><span class="line">            <span class="hljs-keyword">case</span> <span class="hljs-number">4</span>:</span><br><span class="line">                <span class="hljs-keyword">return</span> $instance-&gt;$method($args[<span class="hljs-number">0</span>], $args[<span class="hljs-number">1</span>], $args[<span class="hljs-number">2</span>], $args[<span class="hljs-number">3</span>]);</span><br><span class="line"></span><br><span class="line">            <span class="hljs-keyword">default</span>:</span><br><span class="line">                <span class="hljs-keyword">return</span> call_user_func_array([$instance, $method], $args);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>从这个方法就可以知道，最开始的时候会先调用getFacadeRoot方法知道，返回的容易最终于还是通过static::$app[$name];返回</p>
+<h2 id="Facade的-app参数"><a href="#Facade的-app参数" class="headerlink" title="Facade的$app参数"></a>Facade的$app参数</h2><p>在Facade并没有加载$app参数的过程，只有一个set的方法</p>
+<figure class="highlight php hljs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="hljs-meta">&lt;?php</span></span><br><span class="line">	<span class="hljs-comment">/**</span></span><br><span class="line"><span class="hljs-comment">     * Set the application instance.</span></span><br><span class="line"><span class="hljs-comment">     *</span></span><br><span class="line"><span class="hljs-comment">     * <span class="hljs-doctag">@param</span>  \Illuminate\Contracts\Foundation\Application  $app</span></span><br><span class="line"><span class="hljs-comment">     * <span class="hljs-doctag">@return</span> void</span></span><br><span class="line"><span class="hljs-comment">     */</span></span><br><span class="line">    <span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">setFacadeApplication</span><span class="hljs-params">($app)</span></span></span><br><span class="line"><span class="hljs-function">    </span>&#123;</span><br><span class="line">        <span class="hljs-keyword">static</span>::$app = $app;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个setFacadeApplication方法是在类 Illuminate\Foundation\Bootstrap\RegisterFacades方法 bootstrap(Application $app)设置</p>
+<figure class="highlight php hljs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="hljs-meta">&lt;?php</span></span><br><span class="line"></span><br><span class="line"><span class="hljs-keyword">namespace</span> <span class="hljs-title">Illuminate</span>\<span class="hljs-title">Foundation</span>\<span class="hljs-title">Bootstrap</span>;</span><br><span class="line"></span><br><span class="line"><span class="hljs-keyword">use</span> <span class="hljs-title">Illuminate</span>\<span class="hljs-title">Support</span>\<span class="hljs-title">Facades</span>\<span class="hljs-title">Facade</span>;</span><br><span class="line"><span class="hljs-keyword">use</span> <span class="hljs-title">Illuminate</span>\<span class="hljs-title">Foundation</span>\<span class="hljs-title">AliasLoader</span>;</span><br><span class="line"><span class="hljs-keyword">use</span> <span class="hljs-title">Illuminate</span>\<span class="hljs-title">Contracts</span>\<span class="hljs-title">Foundation</span>\<span class="hljs-title">Application</span>;</span><br><span class="line"></span><br><span class="line"><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">RegisterFacades</span></span></span><br><span class="line"><span class="hljs-class"></span>&#123;</span><br><span class="line">    <span class="hljs-comment">/**</span></span><br><span class="line"><span class="hljs-comment">     * Bootstrap the given application.</span></span><br><span class="line"><span class="hljs-comment">     *</span></span><br><span class="line"><span class="hljs-comment">     * <span class="hljs-doctag">@param</span>  \Illuminate\Contracts\Foundation\Application  $app</span></span><br><span class="line"><span class="hljs-comment">     * <span class="hljs-doctag">@return</span> void</span></span><br><span class="line"><span class="hljs-comment">     */</span></span><br><span class="line">    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">bootstrap</span><span class="hljs-params">(Application $app)</span></span></span><br><span class="line"><span class="hljs-function">    </span>&#123;</span><br><span class="line">        Facade::clearResolvedInstances();</span><br><span class="line"></span><br><span class="line">        Facade::setFacadeApplication($app);</span><br><span class="line"></span><br><span class="line">        AliasLoader::getInstance($app-&gt;make(<span class="hljs-string">'config'</span>)-&gt;get(<span class="hljs-string">'app.aliases'</span>))-&gt;register();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>页RegisterFacades类载见配置vendor/composer/autoload_classmap.php</p>
+<h2 id="app的db加载"><a href="#app的db加载" class="headerlink" title="$app的db加载"></a>$app的db加载</h2><p>到了这里，$app设置完了，那么，$app里的db参数是什么时候设置的呢？</p>
+<p>$app参数是Illuminate\Foundation\Application类，类有一个构造函数</p>
+<figure class="highlight php hljs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line"><span class="hljs-meta">&lt;?php</span> </span><br><span class="line">	<span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">__construct</span><span class="hljs-params">($basePath = null)</span></span></span><br><span class="line"><span class="hljs-function">    </span>&#123;</span><br><span class="line">        <span class="hljs-keyword">$this</span>-&gt;registerBaseBindings();</span><br><span class="line"></span><br><span class="line">        <span class="hljs-keyword">$this</span>-&gt;registerBaseServiceProviders();</span><br><span class="line"></span><br><span class="line">        <span class="hljs-keyword">$this</span>-&gt;registerCoreContainerAliases();</span><br><span class="line"></span><br><span class="line">        <span class="hljs-keyword">if</span> ($basePath) &#123;</span><br><span class="line">            <span class="hljs-keyword">$this</span>-&gt;setBasePath($basePath);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">	</span><br><span class="line">	<span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">registerCoreContainerAliases</span><span class="hljs-params">()</span></span></span><br><span class="line"><span class="hljs-function">    </span>&#123;</span><br><span class="line">        $aliases = [</span><br><span class="line">            <span class="hljs-string">'app'</span>                  =&gt; [<span class="hljs-string">'Illuminate\Foundation\Application'</span>, <span class="hljs-string">'Illuminate\Contracts\Container\Container'</span>, <span class="hljs-string">'Illuminate\Contracts\Foundation\Application'</span>],</span><br><span class="line">            <span class="hljs-string">'auth'</span>                 =&gt; [<span class="hljs-string">'Illuminate\Auth\AuthManager'</span>, <span class="hljs-string">'Illuminate\Contracts\Auth\Factory'</span>],</span><br><span class="line">            <span class="hljs-string">'auth.driver'</span>          =&gt; [<span class="hljs-string">'Illuminate\Contracts\Auth\Guard'</span>],</span><br><span class="line">            <span class="hljs-string">'auth.password'</span>        =&gt; [<span class="hljs-string">'Illuminate\Contracts\Auth\PasswordBrokerFactory'</span>],</span><br><span class="line">            <span class="hljs-string">'auth.password.broker'</span> =&gt; [<span class="hljs-string">'Illuminate\Contracts\Auth\PasswordBroker'</span>],</span><br><span class="line">            <span class="hljs-string">'blade.compiler'</span>       =&gt; [<span class="hljs-string">'Illuminate\View\Compilers\BladeCompiler'</span>],</span><br><span class="line">            <span class="hljs-string">'cache'</span>                =&gt; [<span class="hljs-string">'Illuminate\Cache\CacheManager'</span>, <span class="hljs-string">'Illuminate\Contracts\Cache\Factory'</span>],</span><br><span class="line">            <span class="hljs-string">'cache.store'</span>          =&gt; [<span class="hljs-string">'Illuminate\Cache\Repository'</span>, <span class="hljs-string">'Illuminate\Contracts\Cache\Repository'</span>],</span><br><span class="line">            <span class="hljs-string">'config'</span>               =&gt; [<span class="hljs-string">'Illuminate\Config\Repository'</span>, <span class="hljs-string">'Illuminate\Contracts\Config\Repository'</span>],</span><br><span class="line">            <span class="hljs-string">'cookie'</span>               =&gt; [<span class="hljs-string">'Illuminate\Cookie\CookieJar'</span>, <span class="hljs-string">'Illuminate\Contracts\Cookie\Factory'</span>, <span class="hljs-string">'Illuminate\Contracts\Cookie\QueueingFactory'</span>],</span><br><span class="line">            <span class="hljs-string">'encrypter'</span>            =&gt; [<span class="hljs-string">'Illuminate\Encryption\Encrypter'</span>, <span class="hljs-string">'Illuminate\Contracts\Encryption\Encrypter'</span>],</span><br><span class="line">            <span class="hljs-string">'db'</span>                   =&gt; [<span class="hljs-string">'Illuminate\Database\DatabaseManager'</span>],</span><br><span class="line">            <span class="hljs-string">'db.connection'</span>        =&gt; [<span class="hljs-string">'Illuminate\Database\Connection'</span>, <span class="hljs-string">'Illuminate\Database\ConnectionInterface'</span>],</span><br><span class="line">            <span class="hljs-string">'events'</span>               =&gt; [<span class="hljs-string">'Illuminate\Events\Dispatcher'</span>, <span class="hljs-string">'Illuminate\Contracts\Events\Dispatcher'</span>],</span><br><span class="line">            <span class="hljs-string">'files'</span>                =&gt; [<span class="hljs-string">'Illuminate\Filesystem\Filesystem'</span>],</span><br><span class="line">            <span class="hljs-string">'filesystem'</span>           =&gt; [<span class="hljs-string">'Illuminate\Filesystem\FilesystemManager'</span>, <span class="hljs-string">'Illuminate\Contracts\Filesystem\Factory'</span>],</span><br><span class="line">            <span class="hljs-string">'filesystem.disk'</span>      =&gt; [<span class="hljs-string">'Illuminate\Contracts\Filesystem\Filesystem'</span>],</span><br><span class="line">            <span class="hljs-string">'filesystem.cloud'</span>     =&gt; [<span class="hljs-string">'Illuminate\Contracts\Filesystem\Cloud'</span>],</span><br><span class="line">            <span class="hljs-string">'hash'</span>                 =&gt; [<span class="hljs-string">'Illuminate\Contracts\Hashing\Hasher'</span>],</span><br><span class="line">            <span class="hljs-string">'translator'</span>           =&gt; [<span class="hljs-string">'Illuminate\Translation\Translator'</span>, <span class="hljs-string">'Symfony\Component\Translation\TranslatorInterface'</span>],</span><br><span class="line">            <span class="hljs-string">'log'</span>                  =&gt; [<span class="hljs-string">'Illuminate\Log\Writer'</span>, <span class="hljs-string">'Illuminate\Contracts\Logging\Log'</span>, <span class="hljs-string">'Psr\Log\LoggerInterface'</span>],</span><br><span class="line">            <span class="hljs-string">'mailer'</span>               =&gt; [<span class="hljs-string">'Illuminate\Mail\Mailer'</span>, <span class="hljs-string">'Illuminate\Contracts\Mail\Mailer'</span>, <span class="hljs-string">'Illuminate\Contracts\Mail\MailQueue'</span>],</span><br><span class="line">            <span class="hljs-string">'auth.password'</span>        =&gt; [<span class="hljs-string">'Illuminate\Auth\Passwords\PasswordBrokerManager'</span>, <span class="hljs-string">'Illuminate\Contracts\Auth\PasswordBrokerFactory'</span>],</span><br><span class="line">            <span class="hljs-string">'auth.password.broker'</span> =&gt; [<span class="hljs-string">'Illuminate\Auth\Passwords\PasswordBroker'</span>, <span class="hljs-string">'Illuminate\Contracts\Auth\PasswordBroker'</span>],</span><br><span class="line">            <span class="hljs-string">'queue'</span>                =&gt; [<span class="hljs-string">'Illuminate\Queue\QueueManager'</span>, <span class="hljs-string">'Illuminate\Contracts\Queue\Factory'</span>, <span class="hljs-string">'Illuminate\Contracts\Queue\Monitor'</span>],</span><br><span class="line">            <span class="hljs-string">'queue.connection'</span>     =&gt; [<span class="hljs-string">'Illuminate\Contracts\Queue\Queue'</span>],</span><br><span class="line">            <span class="hljs-string">'redirect'</span>             =&gt; [<span class="hljs-string">'Illuminate\Routing\Redirector'</span>],</span><br><span class="line">            <span class="hljs-string">'redis'</span>                =&gt; [<span class="hljs-string">'Illuminate\Redis\Database'</span>, <span class="hljs-string">'Illuminate\Contracts\Redis\Database'</span>],</span><br><span class="line">            <span class="hljs-string">'request'</span>              =&gt; [<span class="hljs-string">'Illuminate\Http\Request'</span>, <span class="hljs-string">'Symfony\Component\HttpFoundation\Request'</span>],</span><br><span class="line">            <span class="hljs-string">'router'</span>               =&gt; [<span class="hljs-string">'Illuminate\Routing\Router'</span>, <span class="hljs-string">'Illuminate\Contracts\Routing\Registrar'</span>],</span><br><span class="line">            <span class="hljs-string">'session'</span>              =&gt; [<span class="hljs-string">'Illuminate\Session\SessionManager'</span>],</span><br><span class="line">            <span class="hljs-string">'session.store'</span>        =&gt; [<span class="hljs-string">'Illuminate\Session\Store'</span>, <span class="hljs-string">'Symfony\Component\HttpFoundation\Session\SessionInterface'</span>],</span><br><span class="line">            <span class="hljs-string">'url'</span>                  =&gt; [<span class="hljs-string">'Illuminate\Routing\UrlGenerator'</span>, <span class="hljs-string">'Illuminate\Contracts\Routing\UrlGenerator'</span>],</span><br><span class="line">            <span class="hljs-string">'validator'</span>            =&gt; [<span class="hljs-string">'Illuminate\Validation\Factory'</span>, <span class="hljs-string">'Illuminate\Contracts\Validation\Factory'</span>],</span><br><span class="line">            <span class="hljs-string">'view'</span>                 =&gt; [<span class="hljs-string">'Illuminate\View\Factory'</span>, <span class="hljs-string">'Illuminate\Contracts\View\Factory'</span>],</span><br><span class="line">        ];</span><br><span class="line"></span><br><span class="line">        <span class="hljs-keyword">foreach</span> ($aliases <span class="hljs-keyword">as</span> $key =&gt; $aliases) &#123;</span><br><span class="line">            <span class="hljs-keyword">foreach</span> ($aliases <span class="hljs-keyword">as</span> $alias) &#123;</span><br><span class="line">                <span class="hljs-keyword">$this</span>-&gt;alias($key, $alias);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>构造函数会调用registerCoreContainerAliases方法，这个方法里的aliases数组就有db，对应的类就是Illuminate\Database\DatabaseManager，那就也就是DB::select会调用Illuminate\Database\DatabaseManager::select</p>
+<ul>
+<li></li>
+</ul>
+
+        </div>
+        
+        
+        
+    </div>
+</div>
+
+
+
+<div class="card">
+    <div class="card-content">
+        <h3 class="menu-label has-text-centered">喜欢这篇文章？打赏一下作者吧</h3>
+        <div class="buttons is-centered">
+            
+                
+<a class="button is-info donate">
+    <span class="icon is-small">
+        <i class="fab fa-alipay"></i>
+    </span>
+    <span>支付宝</span>
+    <div class="qrcode"><img src="/images/qrcode_alipay.jpg" alt="支付宝"></div>
+</a>
+
+                
+                
+<a class="button is-success donate">
+    <span class="icon is-small">
+        <i class="fab fa-weixin"></i>
+    </span>
+    <span>微信</span>
+    <div class="qrcode"><img src="/images/qrcode_weixin.jpg" alt="微信"></div>
+</a>
+
+                
+        </div>
+    </div>
+</div>
+
+
+
+<div class="card card-transparent">
+    <div class="level post-navigation is-flex-wrap is-mobile">
+        
+        <div class="level-start">
+            <a class="level level-item has-link-grey  article-nav-prev" href="/2016/02/02/laravel-routers/">
+                <i class="level-item fas fa-chevron-left"></i>
+                <span class="level-item">Laravel路由分析</span>
+            </a>
+        </div>
+        
+        
+        <div class="level-end">
+            <a class="level level-item has-link-grey  article-nav-next" href="/2015/06/01/huya/">
+                <span class="level-item">网站改造</span>
+                <i class="level-item fas fa-chevron-right"></i>
+            </a>
+        </div>
+        
+    </div>
+</div>
+
+
+
+<div class="card">
+    <div class="card-content">
+        <h3 class="title is-5 has-text-weight-normal">评论</h3>
+        
+<div id="valine-thread" class="content"></div>
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src='//unpkg.com/valine/dist/Valine.min.js'></script>
+<script>
+    new Valine({
+        el: '#valine-thread' ,
+        notify: false,
+        verify: false,
+        app_id: 'Dn599N62352itx4P4dkSTrhL-gzGzoHsz',
+        app_key: 'YPHoVDgb0U2mYUkBNEbmfh8u',
+        placeholder: 'Say something...'
+    });
+</script>
+
+    </div>
+</div>
+</div>
+                
+
+
+
+
+<div class="column is-3-tablet is-3-desktop is-3-widescreen  has-order-1 column-left ">
+    
+        
+<div class="card widget">
+    <div class="card-content">
+        <nav class="level">
+            <div class="level-item has-text-centered" style="flex-shrink: 1">
+                <div>
+                    
+                        <img class="image is-128x128 has-mb-6" src="/images/avatar.png" alt="Jacho Huang">
+                    
+                    
+                    <p class="is-size-4 is-block">
+                        Jacho Huang
+                    </p>
+                    
+                    
+                    <p class="is-size-6 is-block">
+                        DreamCoder
+                    </p>
+                    
+                    
+                    <p class="is-size-6 is-flex is-flex-center has-text-grey">
+                        <i class="fas fa-map-marker-alt has-mr-7"></i>
+                        <span>China GuangDong GuangZhou</span>
+                    </p>
+                    
+                </div>
+            </div>
+        </nav>
+        <nav class="level is-mobile">
+            <div class="level-item has-text-centered is-marginless">
+                <div>
+                    <p class="heading">
+                        文章
+                    </p>
+                    <p class="title has-text-weight-normal">
+                        12
+                    </p>
+                </div>
+            </div>
+            <div class="level-item has-text-centered is-marginless">
+                <div>
+                    <p class="heading">
+                        分类
+                    </p>
+                    <p class="title has-text-weight-normal">
+                        1
+                    </p>
+                </div>
+            </div>
+            <div class="level-item has-text-centered is-marginless">
+                <div>
+                    <p class="heading">
+                        标签
+                    </p>
+                    <p class="title has-text-weight-normal">
+                        4
+                    </p>
+                </div>
+            </div>
+        </nav>
+        <div class="level">
+            <a class="level-item button is-link is-rounded" href="https://github.com/jachohx" target="_blank">
+                关注我</a>
+        </div>
+        
+        
+        <div class="level is-mobile">
+            
+            <a class="level-item button is-white is-marginless" target="_blank"
+                title="Github" href="https://github.com/jachohx">
+                
+                <i class="fab fa-github"></i>
+                
+            </a>
+            
+            <a class="level-item button is-white is-marginless" target="_blank"
+                title="Facebook" href="https://facebook.com/jachohx">
+                
+                <i class="fab fa-facebook"></i>
+                
+            </a>
+            
+            <a class="level-item button is-white is-marginless" target="_blank"
+                title="Twitter" href="https://twitter.com/jachohx">
+                
+                <i class="fab fa-twitter"></i>
+                
+            </a>
+            
+            <a class="level-item button is-white is-marginless" target="_blank"
+                title="RSS" href="/atom.xml">
+                
+                <i class="fas fa-rss"></i>
+                
+            </a>
+            
+        </div>
+        
+    </div>
+</div>
+    
+        
+<div class="card widget" id="toc">
+    <div class="card-content">
+        <div class="menu">
+            <h3 class="menu-label">
+                目录
+            </h3>
+            <ul class="menu-list"><li>
+        <a class="is-flex" href="#新的Facade类">
+        <span class="has-mr-6">1</span>
+        <span>新的Facade类</span>
+        </a></li><li>
+        <a class="is-flex" href="#静态方法加载">
+        <span class="has-mr-6">2</span>
+        <span>静态方法加载</span>
+        </a></li><li>
+        <a class="is-flex" href="#Facade的-app参数">
+        <span class="has-mr-6">3</span>
+        <span>Facade的$app参数</span>
+        </a></li><li>
+        <a class="is-flex" href="#app的db加载">
+        <span class="has-mr-6">4</span>
+        <span>$app的db加载</span>
+        </a></li></ul>
+        </div>
+    </div>
+</div>
+
+    
+        
+<div class="card widget">
+    <div class="card-content">
+        <div class="menu">
+            <h3 class="menu-label">
+                分类
+            </h3>
+            <ul class="menu-list">
+            <li>
+        <a class="level is-marginless" href="/categories/tech/">
+            <span class="level-start">
+                <span class="level-item">tech</span>
+            </span>
+            <span class="level-end">
+                <span class="level-item tag">11</span>
+            </span>
+        </a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+    
+        <div class="card widget">
+    <div class="card-content">
+        <div class="menu">
+            <h3 class="menu-label">
+                标签
+            </h3>
+            <div class="field is-grouped is-grouped-multiline">
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/eclipse/">
+                        <span class="tag">eclipse</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/java/">
+                        <span class="tag">java</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/shell/">
+                        <span class="tag">shell</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/tech/">
+                        <span class="tag">tech</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+</div>
+    
+    
+        <div class="column-right-shadow is-hidden-widescreen ">
+        
+        </div>
+    
+</div>
+
+
+                
+
+            </div>
+        </div>
+    </section>
+    <footer class="footer">
+    <div class="container">
+        <div class="level">
+            <div class="level-start has-text-centered-mobile">
+                <a class="footer-logo is-block has-mb-6" href="/">
+                
+                    <img src="/images/logo.png" alt="Facade类分析" height="28">
+                
+                </a>
+                <p class="is-size-7">
+                &copy; 2019 Jacho&nbsp;
+                Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> & <a
+                        href="https://github.com/ppoffice/hexo-theme-icarus" target="_blank">Icarus</a>
+                
+                </p>
+            </div>
+            <div class="level-end">
+            
+                <div class="field has-addons is-flex-center-mobile has-mt-5-mobile is-flex-wrap is-flex-middle">
+                
+                
+                <p class="control">
+                    <a class="button is-white is-large" target="_blank" title="Creative Commons" href="https://creativecommons.org/">
+                        
+                        <i class="fab fa-creative-commons"></i>
+                        
+                    </a>
+                </p>
+                
+                <p class="control">
+                    <a class="button is-white is-large" target="_blank" title="Attribution 4.0 International" href="https://creativecommons.org/licenses/by/4.0/">
+                        
+                        <i class="fab fa-creative-commons-by"></i>
+                        
+                    </a>
+                </p>
+                
+                <p class="control">
+                    <a class="button is-white is-large" target="_blank" title="Download on GitHub" href="https://github.com/ppoffice/hexo-theme-icarus">
+                        
+                        <i class="fab fa-github"></i>
+                        
+                    </a>
+                </p>
+                
+                </div>
+            
+            </div>
+        </div>
+    </div>
+</footer>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/moment@2.22.2/min/moment-with-locales.min.js"></script>
+<script>moment.locale("zh-CN");</script>
+
+<script>
+var IcarusThemeSettings = {
+    article: {
+        highlight: {
+            clipboard: true,
+            fold: 'unfolded'
+        }
+    }
+};
+</script>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/clipboard@2.0.4/dist/clipboard.min.js" defer></script>
+
+
+
+    
+    
+    
+    <script src="/js/animation.js"></script>
+    
+
+    
+    
+    
+    <script src="https://cdn.jsdelivr.net/npm/lightgallery@1.6.8/dist/js/lightgallery.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/js/jquery.justifiedGallery.min.js" defer></script>
+    <script src="/js/gallery.js" defer></script>
+    
+
+    
+    
+
+<div id="outdated">
+    <h6>Your browser is out-of-date!</h6>
+    <p>Update your browser to view this website correctly. <a id="btnUpdateBrowser" href="http://outdatedbrowser.com/">Update
+            my browser now </a></p>
+    <p class="last"><a href="#" id="btnCloseUpdateBrowser" title="Close">&times;</a></p>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/outdatedbrowser@1.1.5/outdatedbrowser/outdatedbrowser.min.js" defer></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        outdatedBrowser({
+            bgColor: '#f25648',
+            color: '#ffffff',
+            lowerThan: 'flex'
+        });
+    });
+</script>
+
+
+    
+    
+<script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.5/unpacked/MathJax.js?config=TeX-MML-AM_CHTML" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    MathJax.Hub.Config({
+        'HTML-CSS': {
+            matchFontHeight: false
+        },
+        SVG: {
+            matchFontHeight: false
+        },
+        CommonHTML: {
+            matchFontHeight: false
+        },
+        tex2jax: {
+            inlineMath: [
+                ['$','$'],
+                ['\\(','\\)']
+            ]
+        }
+    });
+});
+</script>
+
+    
+    
+
+<a id="back-to-top" title="回到顶端" href="javascript:;">
+    <i class="fas fa-chevron-up"></i>
+</a>
+<script src="/js/back-to-top.js" defer></script>
+
+
+    
+    
+
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+
+
+<script src="/js/main.js" defer></script>
+
+    
+    <div class="searchbox ins-search">
+    <div class="searchbox-container ins-search-container">
+        <div class="searchbox-input-wrapper">
+            <input type="text" class="searchbox-input ins-search-input" placeholder="想要查找什么..." />
+            <span class="searchbox-close ins-close ins-selectable"><i class="fa fa-times-circle"></i></span>
+        </div>
+        <div class="searchbox-result-wrapper ins-section-wrapper">
+            <div class="ins-section-container"></div>
+        </div>
+    </div>
+</div>
+<script>
+    (function (window) {
+        var INSIGHT_CONFIG = {
+            TRANSLATION: {
+                POSTS: '文章',
+                PAGES: '页面',
+                CATEGORIES: '分类',
+                TAGS: '标签',
+                UNTITLED: '(无标题)',
+            },
+            CONTENT_URL: '/content.json',
+        };
+        window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+    })(window);
+</script>
+<script src="/js/insight.js" defer></script>
+<link rel="stylesheet" href="/css/search.css">
+<link rel="stylesheet" href="/css/insight.css">
+    
+</body>
+</html>

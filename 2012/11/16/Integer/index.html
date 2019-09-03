@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html  lang="zh">
+<head>
+    <meta charset="utf-8" />
+
+<meta name="generator" content="Hexo 3.9.0" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+
+<title>Integer的自动装箱与拆箱 - DreamCoder</title>
+
+
+    <meta name="description" content="最近看到一行代码 1map.put(key, Integer.valueOf(&quot;1&quot;));  Map是HashMap&amp;lt;String, Integer&amp;gt;(); 首先这行代码效率肯定是很低的，1是数字，然后转成了字符，再转成数字。 首先，既然是数字，那么就没有必要用“1”了，直接Integer.valueOf(1)就可以了。 最简单的写法是1。 但考虑到自动装箱boxing 是在JDK1.">
+<meta name="keywords" content="java">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Integer的自动装箱与拆箱">
+<meta property="og:url" content="http://yoursite.com/2012/11/16/Integer/index.html">
+<meta property="og:site_name" content="DreamCoder">
+<meta property="og:description" content="最近看到一行代码 1map.put(key, Integer.valueOf(&quot;1&quot;));  Map是HashMap&amp;lt;String, Integer&amp;gt;(); 首先这行代码效率肯定是很低的，1是数字，然后转成了字符，再转成数字。 首先，既然是数字，那么就没有必要用“1”了，直接Integer.valueOf(1)就可以了。 最简单的写法是1。 但考虑到自动装箱boxing 是在JDK1.">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://yoursite.com/images/og_image.png">
+<meta property="og:updated_time" content="2019-09-02T15:31:32.450Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Integer的自动装箱与拆箱">
+<meta name="twitter:description" content="最近看到一行代码 1map.put(key, Integer.valueOf(&quot;1&quot;));  Map是HashMap&amp;lt;String, Integer&amp;gt;(); 首先这行代码效率肯定是很低的，1是数字，然后转成了字符，再转成数字。 首先，既然是数字，那么就没有必要用“1”了，直接Integer.valueOf(1)就可以了。 最简单的写法是1。 但考虑到自动装箱boxing 是在JDK1.">
+<meta name="twitter:image" content="http://yoursite.com/images/og_image.png">
+<meta name="twitter:creator" content="@jachohx">
+<meta name="twitter:site" content="https://twitter.com/jachohx">
+
+
+
+
+
+
+
+<link rel="icon" href="/images/favicon.svg">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.7.2/css/bulma.css">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.4.1/css/all.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Ubuntu:400,600|Source+Code+Pro">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@9.12.0/styles/atom-one-light.css">
+
+
+    
+    
+    
+    <style>body>.footer,body>.navbar,body>.section{opacity:0}</style>
+    
+
+    
+    
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lightgallery@1.6.8/dist/css/lightgallery.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/css/justifiedGallery.min.css">
+    
+
+    
+    
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/outdatedbrowser@1.1.5/outdatedbrowser/outdatedbrowser.min.css">
+
+
+    
+    
+    
+    
+
+<link rel="stylesheet" href="/css/back-to-top.css">
+
+
+    
+    
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-35504774-1"></script>
+<script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'UA-35504774-1');
+</script>
+
+
+    
+    
+<script>
+var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?b161285312ada2279113767da5219d60";
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+    
+    
+
+    
+    
+<link rel="stylesheet" href="/css/progressbar.css">
+<script src="https://cdn.jsdelivr.net/npm/pace-js@1.0.2/pace.min.js"></script>
+
+    
+    
+    
+
+
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="is-2-column">
+    <nav class="navbar navbar-main">
+    <div class="container">
+        <div class="navbar-brand is-flex-center">
+            <a class="navbar-item navbar-logo" href="/">
+            
+                <img src="/images/logo.png" alt="Integer的自动装箱与拆箱" height="28">
+            
+            </a>
+        </div>
+        <div class="navbar-menu">
+            
+            <div class="navbar-start">
+                
+                <a class="navbar-item"
+                href="/">主页</a>
+                
+                <a class="navbar-item"
+                href="/archives">归档</a>
+                
+                <a class="navbar-item"
+                href="/categories">分类</a>
+                
+                <a class="navbar-item"
+                href="/tags">标签</a>
+                
+                <a class="navbar-item"
+                href="/about">关于</a>
+                
+            </div>
+            
+            <div class="navbar-end">
+                
+                    
+                    
+                    <a class="navbar-item" target="_blank" title="Download on GitHub" href="https://github.com/ppoffice/hexo-theme-icarus">
+                        
+                        <i class="fab fa-github"></i>
+                        
+                    </a>
+                    
+                
+                
+                <a class="navbar-item is-hidden-tablet catalogue" title="目录" href="javascript:;">
+                    <i class="fas fa-list-ul"></i>
+                </a>
+                
+                
+                <a class="navbar-item search" title="搜索" href="javascript:;">
+                    <i class="fas fa-search"></i>
+                </a>
+                
+            </div>
+        </div>
+    </div>
+</nav>
+    
+    <section class="section">
+        <div class="container">
+            <div class="columns">
+                <div class="column is-9-tablet is-9-desktop is-9-widescreen has-order-2 column-main"><div class="card">
+    
+    <div class="card-content article ">
+        
+        <div class="level article-meta is-size-7 is-uppercase is-mobile is-overflow-x-auto">
+            <div class="level-left">
+                <time class="level-item has-text-grey" datetime="2012-11-15T16:00:00.000Z">2012-11-16</time>
+                
+                <div class="level-item">
+                <a class="has-link-grey -link" href="/categories/tech/">tech</a>
+                </div>
+                
+                
+                <span class="level-item has-text-grey">
+                    
+                    
+                    4 分钟 读完 (大约 543 个字)
+                </span>
+                
+                
+            </div>
+        </div>
+        
+        <h1 class="title is-size-3 is-size-4-mobile has-text-weight-normal">
+            
+                Integer的自动装箱与拆箱
+            
+        </h1>
+        <div class="content">
+            <p>最近看到一行代码</p>
+<figure class="highlight java hljs"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">map.put(key, Integer.valueOf(<span class="hljs-string">"1"</span>));</span><br></pre></td></tr></table></figure>
+
+<p>Map是HashMap&lt;String, Integer&gt;();</p>
+<p>首先这行代码效率肯定是很低的，1是数字，然后转成了字符，再转成数字。</p>
+<p>首先，既然是数字，那么就没有必要用“1”了，直接Integer.valueOf(1)就可以了。</p>
+<p>最简单的写法是1。</p>
+<p>但考虑到自动装箱boxing 是在JDK1.5后才有的，所以1.4还是要用new Integer(1)或Integer(1)。</p>
+<a id="more"></a>
+
+<p>下面来看下这段代码</p>
+<figure class="highlight java hljs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">Integer i1 = <span class="hljs-number">1</span>;</span><br><span class="line">Integer i2 = <span class="hljs-keyword">new</span> Integer(<span class="hljs-number">1</span>);</span><br><span class="line">Integer i3 = Integer.valueOf(<span class="hljs-number">1</span>);    </span><br><span class="line">Integer i4 = Integer.valueOf(<span class="hljs-string">"1"</span>);</span><br><span class="line">Integer i5 = <span class="hljs-number">129</span>;       </span><br><span class="line"><span class="hljs-keyword">int</span> i6 = i5;</span><br></pre></td></tr></table></figure>
+
+<p>在Class文件里可以看到</p>
+<figure class="highlight java hljs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="hljs-number">0</span>  iconst_1</span><br><span class="line"><span class="hljs-number">1</span>  invokestatic java.lang.Integer.valueOf(<span class="hljs-keyword">int</span>) : java.lang.Integer [<span class="hljs-number">16</span>]</span><br><span class="line"><span class="hljs-number">4</span>  astore_1 [i1]</span><br><span class="line"><span class="hljs-number">5</span>  <span class="hljs-keyword">new</span> java.lang.Integer [<span class="hljs-number">17</span>]</span><br><span class="line"><span class="hljs-number">8</span>  dup</span><br><span class="line"><span class="hljs-number">9</span>  iconst_1</span><br><span class="line"><span class="hljs-number">10</span>  invokespecial java.lang.Integer(<span class="hljs-keyword">int</span>) [<span class="hljs-number">22</span>]</span><br><span class="line"><span class="hljs-number">13</span>  astore_2 [i2]</span><br><span class="line"><span class="hljs-number">14</span>  iconst_1</span><br><span class="line"><span class="hljs-number">15</span>  invokestatic java.lang.Integer.valueOf(<span class="hljs-keyword">int</span>) : java.lang.Integer [<span class="hljs-number">16</span>]</span><br><span class="line"><span class="hljs-number">18</span>  astore_3 [i3]</span><br><span class="line"><span class="hljs-number">19</span>  ldc &lt;String <span class="hljs-string">"1"</span>&gt; [<span class="hljs-number">25</span>]</span><br><span class="line"><span class="hljs-number">21</span>  invokestatic java.lang.Integer.valueOf(java.lang.String) : java.lang.Integer [<span class="hljs-number">27</span>]</span><br><span class="line"><span class="hljs-number">24</span>  astore <span class="hljs-number">4</span> [i4]</span><br><span class="line"><span class="hljs-number">26</span>  sipush <span class="hljs-number">129</span></span><br><span class="line"><span class="hljs-number">29</span>  invokestatic java.lang.Integer.valueOf(<span class="hljs-keyword">int</span>) : java.lang.Integer [<span class="hljs-number">16</span>]</span><br><span class="line"><span class="hljs-number">32</span>  astore <span class="hljs-number">5</span> [i5]</span><br><span class="line"><span class="hljs-number">34</span>  aload <span class="hljs-number">5</span> [i5]</span><br><span class="line"><span class="hljs-number">36</span>  invokevirtual java.lang.Integer.intValue() : <span class="hljs-keyword">int</span> [<span class="hljs-number">30</span>]</span><br><span class="line"><span class="hljs-number">39</span>  istore <span class="hljs-number">6</span> [i6]</span><br></pre></td></tr></table></figure>
+
+<p>i1是1，JDK会自动装箱boxing，调用Integer.valueOf(int)方法。与i3是一样的效果。</p>
+<p>而i2是直接new 一个新的Integer。</p>
+<p>i4也调用了valueOf方法，不过比valueOf(int)多了一个步骤parseInt(s, 10)。</p>
+<p>i5与i1一样，不过还是有一点区别，等下再看下valueOf的方法。</p>
+<p>i6是一个自动拆箱unboxing，调用Integer.intValue方法。</p>
+<p>下面再来看下valueOf(int)这个方法</p>
+<figure class="highlight java hljs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> Integer <span class="hljs-title">valueOf</span><span class="hljs-params">(<span class="hljs-keyword">int</span> i)</span> </span>&#123;</span><br><span class="line">	<span class="hljs-keyword">final</span> <span class="hljs-keyword">int</span> offset = <span class="hljs-number">128</span>;</span><br><span class="line">	<span class="hljs-keyword">if</span> (i &gt;= -<span class="hljs-number">128</span> &amp;&amp; i &lt;= <span class="hljs-number">127</span>) &#123; <span class="hljs-comment">// must cache </span></span><br><span class="line">	    <span class="hljs-keyword">return</span> IntegerCache.cache[i + offset];</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> Integer(i);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在看下IntegerCache</p>
+<figure class="highlight java hljs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">IntegerCache</span> </span>&#123;</span><br><span class="line">	<span class="hljs-function"><span class="hljs-keyword">private</span> <span class="hljs-title">IntegerCache</span><span class="hljs-params">()</span></span>&#123;&#125;</span><br><span class="line">	</span><br><span class="line">	<span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> Integer cache[] = <span class="hljs-keyword">new</span> Integer[-(-<span class="hljs-number">128</span>) + <span class="hljs-number">127</span> + <span class="hljs-number">1</span>];</span><br><span class="line">	</span><br><span class="line">	<span class="hljs-keyword">static</span> &#123;</span><br><span class="line">	    <span class="hljs-keyword">for</span>(<span class="hljs-keyword">int</span> i = <span class="hljs-number">0</span>; i &lt; cache.length; i++)</span><br><span class="line">	    cache[i] = <span class="hljs-keyword">new</span> Integer(i - <span class="hljs-number">128</span>);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>IntegerCache会对-128~127之间的数做一个缓存，在valueOf方法里，对-128~127之间的数直接使用IntegerCache缓存，不在这个范围的，则new Integer(int)方法。</p>
+<figure class="highlight java hljs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">System.out.println(Integer.valueOf(<span class="hljs-number">127</span>) == Integer.valueOf(<span class="hljs-number">127</span>));</span><br><span class="line">System.out.println(Integer.valueOf(<span class="hljs-number">129</span>) == Integer.valueOf(<span class="hljs-number">129</span>));</span><br></pre></td></tr></table></figure>
+
+<p>这两个的输出是true，false，也就是第一个用了缓存，第二个都是new出来的对象。</p>
+<p>所以最开始那个代码可以使用</p>
+<figure class="highlight java hljs"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">map.put(key, <span class="hljs-number">1</span>);</span><br></pre></td></tr></table></figure>
+
+<p>当然为了兼容1.4那么就写成</p>
+<figure class="highlight java hljs"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">map.put(key, Integer.valueOf(<span class="hljs-number">1</span>));</span><br></pre></td></tr></table></figure>
+
+<p>但最好不要用</p>
+<figure class="highlight java hljs"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">map.put(key, <span class="hljs-keyword">new</span> Integer(<span class="hljs-number">1</span>));</span><br></pre></td></tr></table></figure>
+        </div>
+        
+        <div class="level is-size-7 is-uppercase">
+            <div class="level-start">
+                <div class="level-item">
+                    <span class="is-size-6 has-text-grey has-mr-7">#</span>
+                    <a class="has-link-grey -link" href="/tags/java/">java</a>
+                </div>
+            </div>
+        </div>
+        
+        
+        
+    </div>
+</div>
+
+
+
+<div class="card">
+    <div class="card-content">
+        <h3 class="menu-label has-text-centered">喜欢这篇文章？打赏一下作者吧</h3>
+        <div class="buttons is-centered">
+            
+                
+<a class="button is-info donate">
+    <span class="icon is-small">
+        <i class="fab fa-alipay"></i>
+    </span>
+    <span>支付宝</span>
+    <div class="qrcode"><img src="/images/qrcode_alipay.jpg" alt="支付宝"></div>
+</a>
+
+                
+                
+<a class="button is-success donate">
+    <span class="icon is-small">
+        <i class="fab fa-weixin"></i>
+    </span>
+    <span>微信</span>
+    <div class="qrcode"><img src="/images/qrcode_weixin.jpg" alt="微信"></div>
+</a>
+
+                
+        </div>
+    </div>
+</div>
+
+
+
+<div class="card card-transparent">
+    <div class="level post-navigation is-flex-wrap is-mobile">
+        
+        <div class="level-start">
+            <a class="level level-item has-link-grey  article-nav-prev" href="/2013/02/06/jekyll-rsync/">
+                <i class="level-item fas fa-chevron-left"></i>
+                <span class="level-item">用vps写jekyll</span>
+            </a>
+        </div>
+        
+        
+        <div class="level-end">
+            <a class="level level-item has-link-grey  article-nav-next" href="/2012/10/11/github-pages/">
+                <span class="level-item">使用Github Pages建独立博客</span>
+                <i class="level-item fas fa-chevron-right"></i>
+            </a>
+        </div>
+        
+    </div>
+</div>
+
+
+
+<div class="card">
+    <div class="card-content">
+        <h3 class="title is-5 has-text-weight-normal">评论</h3>
+        
+<div id="valine-thread" class="content"></div>
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src='//unpkg.com/valine/dist/Valine.min.js'></script>
+<script>
+    new Valine({
+        el: '#valine-thread' ,
+        notify: false,
+        verify: false,
+        app_id: 'Dn599N62352itx4P4dkSTrhL-gzGzoHsz',
+        app_key: 'YPHoVDgb0U2mYUkBNEbmfh8u',
+        placeholder: 'Say something...'
+    });
+</script>
+
+    </div>
+</div>
+</div>
+                
+
+
+
+
+<div class="column is-3-tablet is-3-desktop is-3-widescreen  has-order-1 column-left ">
+    
+        
+<div class="card widget">
+    <div class="card-content">
+        <nav class="level">
+            <div class="level-item has-text-centered" style="flex-shrink: 1">
+                <div>
+                    
+                        <img class="image is-128x128 has-mb-6" src="/images/avatar.png" alt="Jacho Huang">
+                    
+                    
+                    <p class="is-size-4 is-block">
+                        Jacho Huang
+                    </p>
+                    
+                    
+                    <p class="is-size-6 is-block">
+                        DreamCoder
+                    </p>
+                    
+                    
+                    <p class="is-size-6 is-flex is-flex-center has-text-grey">
+                        <i class="fas fa-map-marker-alt has-mr-7"></i>
+                        <span>China GuangDong GuangZhou</span>
+                    </p>
+                    
+                </div>
+            </div>
+        </nav>
+        <nav class="level is-mobile">
+            <div class="level-item has-text-centered is-marginless">
+                <div>
+                    <p class="heading">
+                        文章
+                    </p>
+                    <p class="title has-text-weight-normal">
+                        12
+                    </p>
+                </div>
+            </div>
+            <div class="level-item has-text-centered is-marginless">
+                <div>
+                    <p class="heading">
+                        分类
+                    </p>
+                    <p class="title has-text-weight-normal">
+                        1
+                    </p>
+                </div>
+            </div>
+            <div class="level-item has-text-centered is-marginless">
+                <div>
+                    <p class="heading">
+                        标签
+                    </p>
+                    <p class="title has-text-weight-normal">
+                        4
+                    </p>
+                </div>
+            </div>
+        </nav>
+        <div class="level">
+            <a class="level-item button is-link is-rounded" href="https://github.com/jachohx" target="_blank">
+                关注我</a>
+        </div>
+        
+        
+        <div class="level is-mobile">
+            
+            <a class="level-item button is-white is-marginless" target="_blank"
+                title="Github" href="https://github.com/jachohx">
+                
+                <i class="fab fa-github"></i>
+                
+            </a>
+            
+            <a class="level-item button is-white is-marginless" target="_blank"
+                title="Facebook" href="https://facebook.com/jachohx">
+                
+                <i class="fab fa-facebook"></i>
+                
+            </a>
+            
+            <a class="level-item button is-white is-marginless" target="_blank"
+                title="Twitter" href="https://twitter.com/jachohx">
+                
+                <i class="fab fa-twitter"></i>
+                
+            </a>
+            
+            <a class="level-item button is-white is-marginless" target="_blank"
+                title="RSS" href="/atom.xml">
+                
+                <i class="fas fa-rss"></i>
+                
+            </a>
+            
+        </div>
+        
+    </div>
+</div>
+    
+        
+<div class="card widget" id="toc">
+    <div class="card-content">
+        <div class="menu">
+            <h3 class="menu-label">
+                目录
+            </h3>
+            
+        </div>
+    </div>
+</div>
+
+    
+        
+<div class="card widget">
+    <div class="card-content">
+        <div class="menu">
+            <h3 class="menu-label">
+                分类
+            </h3>
+            <ul class="menu-list">
+            <li>
+        <a class="level is-marginless" href="/categories/tech/">
+            <span class="level-start">
+                <span class="level-item">tech</span>
+            </span>
+            <span class="level-end">
+                <span class="level-item tag">11</span>
+            </span>
+        </a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+    
+        <div class="card widget">
+    <div class="card-content">
+        <div class="menu">
+            <h3 class="menu-label">
+                标签
+            </h3>
+            <div class="field is-grouped is-grouped-multiline">
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/eclipse/">
+                        <span class="tag">eclipse</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/java/">
+                        <span class="tag">java</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/shell/">
+                        <span class="tag">shell</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/tech/">
+                        <span class="tag">tech</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+</div>
+    
+    
+        <div class="column-right-shadow is-hidden-widescreen ">
+        
+        </div>
+    
+</div>
+
+
+                
+
+            </div>
+        </div>
+    </section>
+    <footer class="footer">
+    <div class="container">
+        <div class="level">
+            <div class="level-start has-text-centered-mobile">
+                <a class="footer-logo is-block has-mb-6" href="/">
+                
+                    <img src="/images/logo.png" alt="Integer的自动装箱与拆箱" height="28">
+                
+                </a>
+                <p class="is-size-7">
+                &copy; 2019 Jacho&nbsp;
+                Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> & <a
+                        href="https://github.com/ppoffice/hexo-theme-icarus" target="_blank">Icarus</a>
+                
+                </p>
+            </div>
+            <div class="level-end">
+            
+                <div class="field has-addons is-flex-center-mobile has-mt-5-mobile is-flex-wrap is-flex-middle">
+                
+                
+                <p class="control">
+                    <a class="button is-white is-large" target="_blank" title="Creative Commons" href="https://creativecommons.org/">
+                        
+                        <i class="fab fa-creative-commons"></i>
+                        
+                    </a>
+                </p>
+                
+                <p class="control">
+                    <a class="button is-white is-large" target="_blank" title="Attribution 4.0 International" href="https://creativecommons.org/licenses/by/4.0/">
+                        
+                        <i class="fab fa-creative-commons-by"></i>
+                        
+                    </a>
+                </p>
+                
+                <p class="control">
+                    <a class="button is-white is-large" target="_blank" title="Download on GitHub" href="https://github.com/ppoffice/hexo-theme-icarus">
+                        
+                        <i class="fab fa-github"></i>
+                        
+                    </a>
+                </p>
+                
+                </div>
+            
+            </div>
+        </div>
+    </div>
+</footer>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/moment@2.22.2/min/moment-with-locales.min.js"></script>
+<script>moment.locale("zh-CN");</script>
+
+<script>
+var IcarusThemeSettings = {
+    article: {
+        highlight: {
+            clipboard: true,
+            fold: 'unfolded'
+        }
+    }
+};
+</script>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/clipboard@2.0.4/dist/clipboard.min.js" defer></script>
+
+
+
+    
+    
+    
+    <script src="/js/animation.js"></script>
+    
+
+    
+    
+    
+    <script src="https://cdn.jsdelivr.net/npm/lightgallery@1.6.8/dist/js/lightgallery.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/js/jquery.justifiedGallery.min.js" defer></script>
+    <script src="/js/gallery.js" defer></script>
+    
+
+    
+    
+
+<div id="outdated">
+    <h6>Your browser is out-of-date!</h6>
+    <p>Update your browser to view this website correctly. <a id="btnUpdateBrowser" href="http://outdatedbrowser.com/">Update
+            my browser now </a></p>
+    <p class="last"><a href="#" id="btnCloseUpdateBrowser" title="Close">&times;</a></p>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/outdatedbrowser@1.1.5/outdatedbrowser/outdatedbrowser.min.js" defer></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        outdatedBrowser({
+            bgColor: '#f25648',
+            color: '#ffffff',
+            lowerThan: 'flex'
+        });
+    });
+</script>
+
+
+    
+    
+<script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.5/unpacked/MathJax.js?config=TeX-MML-AM_CHTML" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    MathJax.Hub.Config({
+        'HTML-CSS': {
+            matchFontHeight: false
+        },
+        SVG: {
+            matchFontHeight: false
+        },
+        CommonHTML: {
+            matchFontHeight: false
+        },
+        tex2jax: {
+            inlineMath: [
+                ['$','$'],
+                ['\\(','\\)']
+            ]
+        }
+    });
+});
+</script>
+
+    
+    
+
+<a id="back-to-top" title="回到顶端" href="javascript:;">
+    <i class="fas fa-chevron-up"></i>
+</a>
+<script src="/js/back-to-top.js" defer></script>
+
+
+    
+    
+
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+
+
+<script src="/js/main.js" defer></script>
+
+    
+    <div class="searchbox ins-search">
+    <div class="searchbox-container ins-search-container">
+        <div class="searchbox-input-wrapper">
+            <input type="text" class="searchbox-input ins-search-input" placeholder="想要查找什么..." />
+            <span class="searchbox-close ins-close ins-selectable"><i class="fa fa-times-circle"></i></span>
+        </div>
+        <div class="searchbox-result-wrapper ins-section-wrapper">
+            <div class="ins-section-container"></div>
+        </div>
+    </div>
+</div>
+<script>
+    (function (window) {
+        var INSIGHT_CONFIG = {
+            TRANSLATION: {
+                POSTS: '文章',
+                PAGES: '页面',
+                CATEGORIES: '分类',
+                TAGS: '标签',
+                UNTITLED: '(无标题)',
+            },
+            CONTENT_URL: '/content.json',
+        };
+        window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+    })(window);
+</script>
+<script src="/js/insight.js" defer></script>
+<link rel="stylesheet" href="/css/search.css">
+<link rel="stylesheet" href="/css/insight.css">
+    
+</body>
+</html>

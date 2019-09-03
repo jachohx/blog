@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html  lang="zh">
+<head>
+    <meta charset="utf-8" />
+
+<meta name="generator" content="Hexo 3.9.0" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+
+<title>Laravel路由分析 - DreamCoder</title>
+
+
+    <meta name="description" content="在Laravel的社区找了一下，没有什么文档是分析Laravel路由的。 于是想到了一个比较投巧的方式来分析。 在routes.php加上这句 1Route::controller(&apos;finance&apos;, &quot;FinanceController2&quot;);">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Laravel路由分析">
+<meta property="og:url" content="http://yoursite.com/2016/02/02/laravel-routers/index.html">
+<meta property="og:site_name" content="DreamCoder">
+<meta property="og:description" content="在Laravel的社区找了一下，没有什么文档是分析Laravel路由的。 于是想到了一个比较投巧的方式来分析。 在routes.php加上这句 1Route::controller(&apos;finance&apos;, &quot;FinanceController2&quot;);">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://yoursite.com/images/og_image.png">
+<meta property="og:updated_time" content="2019-09-02T15:45:14.347Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Laravel路由分析">
+<meta name="twitter:description" content="在Laravel的社区找了一下，没有什么文档是分析Laravel路由的。 于是想到了一个比较投巧的方式来分析。 在routes.php加上这句 1Route::controller(&apos;finance&apos;, &quot;FinanceController2&quot;);">
+<meta name="twitter:image" content="http://yoursite.com/images/og_image.png">
+<meta name="twitter:creator" content="@jachohx">
+<meta name="twitter:site" content="https://twitter.com/jachohx">
+
+
+
+
+
+
+
+<link rel="icon" href="/images/favicon.svg">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.7.2/css/bulma.css">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.4.1/css/all.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Ubuntu:400,600|Source+Code+Pro">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@9.12.0/styles/atom-one-light.css">
+
+
+    
+    
+    
+    <style>body>.footer,body>.navbar,body>.section{opacity:0}</style>
+    
+
+    
+    
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lightgallery@1.6.8/dist/css/lightgallery.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/css/justifiedGallery.min.css">
+    
+
+    
+    
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/outdatedbrowser@1.1.5/outdatedbrowser/outdatedbrowser.min.css">
+
+
+    
+    
+    
+    
+
+<link rel="stylesheet" href="/css/back-to-top.css">
+
+
+    
+    
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-35504774-1"></script>
+<script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'UA-35504774-1');
+</script>
+
+
+    
+    
+<script>
+var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?b161285312ada2279113767da5219d60";
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+    
+    
+
+    
+    
+<link rel="stylesheet" href="/css/progressbar.css">
+<script src="https://cdn.jsdelivr.net/npm/pace-js@1.0.2/pace.min.js"></script>
+
+    
+    
+    
+
+
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="is-2-column">
+    <nav class="navbar navbar-main">
+    <div class="container">
+        <div class="navbar-brand is-flex-center">
+            <a class="navbar-item navbar-logo" href="/">
+            
+                <img src="/images/logo.png" alt="Laravel路由分析" height="28">
+            
+            </a>
+        </div>
+        <div class="navbar-menu">
+            
+            <div class="navbar-start">
+                
+                <a class="navbar-item"
+                href="/">主页</a>
+                
+                <a class="navbar-item"
+                href="/archives">归档</a>
+                
+                <a class="navbar-item"
+                href="/categories">分类</a>
+                
+                <a class="navbar-item"
+                href="/tags">标签</a>
+                
+                <a class="navbar-item"
+                href="/about">关于</a>
+                
+            </div>
+            
+            <div class="navbar-end">
+                
+                    
+                    
+                    <a class="navbar-item" target="_blank" title="Download on GitHub" href="https://github.com/ppoffice/hexo-theme-icarus">
+                        
+                        <i class="fab fa-github"></i>
+                        
+                    </a>
+                    
+                
+                
+                <a class="navbar-item is-hidden-tablet catalogue" title="目录" href="javascript:;">
+                    <i class="fas fa-list-ul"></i>
+                </a>
+                
+                
+                <a class="navbar-item search" title="搜索" href="javascript:;">
+                    <i class="fas fa-search"></i>
+                </a>
+                
+            </div>
+        </div>
+    </div>
+</nav>
+    
+    <section class="section">
+        <div class="container">
+            <div class="columns">
+                <div class="column is-9-tablet is-9-desktop is-9-widescreen has-order-2 column-main"><div class="card">
+    
+    <div class="card-content article ">
+        
+        <div class="level article-meta is-size-7 is-uppercase is-mobile is-overflow-x-auto">
+            <div class="level-left">
+                <time class="level-item has-text-grey" datetime="2016-02-01T16:00:00.000Z">2016-02-02</time>
+                
+                <div class="level-item">
+                <a class="has-link-grey -link" href="/categories/tech/">tech</a>
+                </div>
+                
+                
+                <span class="level-item has-text-grey">
+                    
+                    
+                    6 分钟 读完 (大约 836 个字)
+                </span>
+                
+                
+            </div>
+        </div>
+        
+        <h1 class="title is-size-3 is-size-4-mobile has-text-weight-normal">
+            
+                Laravel路由分析
+            
+        </h1>
+        <div class="content">
+            <p>在Laravel的社区找了一下，没有什么文档是分析Laravel路由的。</p>
+<p>于是想到了一个比较投巧的方式来分析。</p>
+<p>在routes.php加上这句</p>
+<figure class="highlight php hljs"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Route::controller(<span class="hljs-string">'finance'</span>, <span class="hljs-string">"FinanceController2"</span>);</span><br></pre></td></tr></table></figure>
+
+<a id="more"></a>
+
+<p>因为FinanceController2不存在，所以会报这个错误：</p>
+<figure class="highlight php hljs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">ReflectionException in ControllerInspector.php line <span class="hljs-number">35</span>:</span><br><span class="line"><span class="hljs-class"><span class="hljs-keyword">Class</span> <span class="hljs-title">App</span>\<span class="hljs-title">Http</span>\<span class="hljs-title">Controllers</span>\<span class="hljs-title">FinanceController2</span> <span class="hljs-title">does</span> <span class="hljs-title">not</span> <span class="hljs-title">exist</span></span></span><br><span class="line"><span class="hljs-class"><span class="hljs-title">in</span> <span class="hljs-title">ControllerInspector</span>.<span class="hljs-title">php</span> <span class="hljs-title">line</span> 35</span></span><br><span class="line">at ReflectionClass-&gt;__construct('App\Http\Controllers\FinanceController2') in ControllerInspector.php line 35</span><br><span class="line">at ControllerInspector-&gt;getRoutable(<span class="hljs-string">'App\Http\Controllers\FinanceController2'</span>, <span class="hljs-string">'finance'</span>) in Router.php line <span class="hljs-number">258</span></span><br><span class="line">at Router-&gt;controller(<span class="hljs-string">'finance'</span>, <span class="hljs-string">'FinanceController2'</span>) in Facade.php line <span class="hljs-number">219</span></span><br><span class="line">at Facade::__callStatic(<span class="hljs-string">'controller'</span>, <span class="hljs-keyword">array</span>(<span class="hljs-string">'finance'</span>, <span class="hljs-string">'FinanceController2'</span>)) in routes.php line <span class="hljs-number">18</span></span><br><span class="line">at Route::controller(<span class="hljs-string">'finance'</span>, <span class="hljs-string">'FinanceController2'</span>) in routes.php line <span class="hljs-number">18</span></span><br><span class="line">at <span class="hljs-keyword">require</span>(<span class="hljs-string">'/Code/server/laravel-v5.2.0/app/Http/routes.php'</span>) in RouteServiceProvider.php line <span class="hljs-number">41</span></span><br><span class="line">at RouteServiceProvider-&gt;App\Providers&#123;closure&#125;(object(Router))</span><br><span class="line">at call_user_func(object(Closure), object(Router)) in Router.php line <span class="hljs-number">379</span></span><br><span class="line">at Router-&gt;group(<span class="hljs-keyword">array</span>(<span class="hljs-string">'namespace'</span> =&gt; <span class="hljs-string">'App\Http\Controllers'</span>), object(Closure)) in RouteServiceProvider.php line <span class="hljs-number">42</span></span><br><span class="line">at RouteServiceProvider-&gt;map(object(Router))</span><br><span class="line">at call_user_func_array(<span class="hljs-keyword">array</span>(object(RouteServiceProvider), <span class="hljs-string">'map'</span>), <span class="hljs-keyword">array</span>(object(Router))) in Container.php line <span class="hljs-number">507</span></span><br><span class="line">at Container-&gt;call(<span class="hljs-keyword">array</span>(object(RouteServiceProvider), <span class="hljs-string">'map'</span>)) in RouteServiceProvider.php line <span class="hljs-number">72</span></span><br><span class="line">at RouteServiceProvider-&gt;loadRoutes() in RouteServiceProvider.php line <span class="hljs-number">31</span></span><br><span class="line">at RouteServiceProvider-&gt;boot(object(Router)) in RouteServiceProvider.php line <span class="hljs-number">29</span></span><br><span class="line">at RouteServiceProvider-&gt;boot(object(Router))</span><br><span class="line">at call_user_func_array(<span class="hljs-keyword">array</span>(object(RouteServiceProvider), <span class="hljs-string">'boot'</span>), <span class="hljs-keyword">array</span>(object(Router))) in Container.php line <span class="hljs-number">507</span></span><br><span class="line">at Container-&gt;call(<span class="hljs-keyword">array</span>(object(RouteServiceProvider), <span class="hljs-string">'boot'</span>)) in Application.php line <span class="hljs-number">734</span></span><br><span class="line">at Application-&gt;bootProvider(object(RouteServiceProvider)) in Application.php line <span class="hljs-number">717</span></span><br><span class="line">at Application-&gt;Illuminate\Foundation&#123;closure&#125;(object(RouteServiceProvider), <span class="hljs-string">'14'</span>)</span><br><span class="line">at array_walk(<span class="hljs-keyword">array</span>(object(EventServiceProvider), object(RoutingServiceProvider), object(AuthServiceProvider), object(CookieServiceProvider), object(DatabaseServiceProvider), object(EncryptionServiceProvider), object(FilesystemServiceProvider), object(FoundationServiceProvider), object(PaginationServiceProvider), object(SessionServiceProvider), object(ViewServiceProvider), object(AppServiceProvider), object(AuthServiceProvider), object(EventServiceProvider), object(RouteServiceProvider)), object(Closure)) in Application.php line <span class="hljs-number">718</span></span><br><span class="line">at Application-&gt;boot() in BootProviders.php line <span class="hljs-number">17</span></span><br><span class="line">at BootProviders-&gt;bootstrap(object(Application)) in Application.php line <span class="hljs-number">203</span></span><br><span class="line">at Application-&gt;bootstrapWith(<span class="hljs-keyword">array</span>(<span class="hljs-string">'Illuminate\Foundation\Bootstrap\DetectEnvironment'</span>, <span class="hljs-string">'Illuminate\Foundation\Bootstrap\LoadConfiguration'</span>, <span class="hljs-string">'Illuminate\Foundation\Bootstrap\ConfigureLogging'</span>, <span class="hljs-string">'Illuminate\Foundation\Bootstrap\HandleExceptions'</span>, <span class="hljs-string">'Illuminate\Foundation\Bootstrap\RegisterFacades'</span>, <span class="hljs-string">'Illuminate\Foundation\Bootstrap\RegisterProviders'</span>, <span class="hljs-string">'Illuminate\Foundation\Bootstrap\BootProviders'</span>)) in Kernel.php line <span class="hljs-number">232</span></span><br><span class="line">at Kernel-&gt;bootstrap() in Kernel.php line <span class="hljs-number">127</span></span><br><span class="line">at Kernel-&gt;sendRequestThroughRouter(object(Request)) in Kernel.php line <span class="hljs-number">99</span></span><br><span class="line">at Kernel-&gt;handle(object(Request)) in index.php line <span class="hljs-number">54</span></span><br></pre></td></tr></table></figure>
+
+<p>从这个报错可以看出，Laravel的Route架构。</p>
+<p>FinanceController2在Illuminate\Routing\Router::controller方法里先判断Router是否有设置groupStack，如果有，会把FinanceController2改成App\Http\Controllers\FinanceController2，即prependGroupUses方法，然后(new ControllerInspector)-&gt;getRoutable才去查找这个类。</p>
+<figure class="highlight php hljs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="hljs-keyword">if</span> (! <span class="hljs-keyword">empty</span>(<span class="hljs-keyword">$this</span>-&gt;groupStack)) &#123;</span><br><span class="line">	$prepended = <span class="hljs-keyword">$this</span>-&gt;prependGroupUses($controller);</span><br><span class="line">&#125;</span><br><span class="line">$routable = (<span class="hljs-keyword">new</span> ControllerInspector)-&gt;getRoutable($prepended, $uri);</span><br></pre></td></tr></table></figure>
+
+<p>groupStack是一个数组，在App\Providers\RouteServiceProvider类里把这个值初始化，map方法，map方法在在父类调用。</p>
+<figure class="highlight php hljs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="hljs-keyword">namespace</span> <span class="hljs-title">App</span>\<span class="hljs-title">Providers</span>;</span><br><span class="line"></span><br><span class="line"><span class="hljs-keyword">use</span> <span class="hljs-title">Illuminate</span>\<span class="hljs-title">Routing</span>\<span class="hljs-title">Router</span>;</span><br><span class="line"><span class="hljs-keyword">use</span> <span class="hljs-title">Illuminate</span>\<span class="hljs-title">Foundation</span>\<span class="hljs-title">Support</span>\<span class="hljs-title">Providers</span>\<span class="hljs-title">RouteServiceProvider</span> <span class="hljs-title">as</span> <span class="hljs-title">ServiceProvider</span>;</span><br><span class="line"></span><br><span class="line"><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">RouteServiceProvider</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">ServiceProvider</span></span></span><br><span class="line"><span class="hljs-class"></span>&#123;</span><br><span class="line">	<span class="hljs-keyword">protected</span> $namespace = <span class="hljs-string">'App\Http\Controllers'</span>;</span><br><span class="line">    <span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">map</span><span class="hljs-params">(Router $router)</span></span></span><br><span class="line"><span class="hljs-function">    </span>&#123;</span><br><span class="line">        $router-&gt;group([<span class="hljs-string">'namespace'</span> =&gt; <span class="hljs-keyword">$this</span>-&gt;namespace], <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">($router)</span> </span>&#123;</span><br><span class="line">            <span class="hljs-keyword">require</span> app_path(<span class="hljs-string">'Http/routes.php'</span>);</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>而App\Providers\RouteServiceProvider在config/app.php里配置</p>
+<p>这里再提下类的加载机制：</p>
+<p>在vendor\composer\autoload_real.php下</p>
+<figure class="highlight php hljs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$classMap = <span class="hljs-keyword">require</span> <span class="hljs-keyword">__DIR__</span> . <span class="hljs-string">'/autoload_classmap.php'</span>;</span><br><span class="line"><span class="hljs-keyword">if</span> ($classMap) &#123;</span><br><span class="line">	$loader-&gt;addClassMap($classMap);</span><br><span class="line">&#125;</span><br><span class="line">$loader-&gt;register(<span class="hljs-keyword">true</span>);</span><br></pre></td></tr></table></figure>
+
+<p>autoload_classmap.php加载一些已经确定的类，在\Composer\Autoload\ClassLoader()里的loadClass会用到。</p>
+<p>register方法使用的是系统的spl_autoload_register方法</p>
+<figure class="highlight php hljs"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">spl_autoload_register(<span class="hljs-keyword">array</span>(<span class="hljs-keyword">$this</span>, <span class="hljs-string">'loadClass'</span>), <span class="hljs-keyword">true</span>, $prepend);</span><br></pre></td></tr></table></figure>
+
+<p>当每次加载类的时候，就会调用ClassLoader的loadClass，如果类名是classmap的名字，会加载类，类的地址在map已经知道。当查找不在classmap的时候就会进入findFileWithExtension这个方法去找</p>
+<p>autoload_psr4.php</p>
+<p>这个文件定义了一些替换的规则，比如App\Http\Controllers\FinanceController2，在配置里是</p>
+<figure class="highlight plain hljs"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&apos;App\\&apos; =&gt; array($baseDir . &apos;/app&apos;),</span><br></pre></td></tr></table></figure>
+
+<p>那么会改成app\Http\Controllers\FinanceController2,</p>
+<figure class="highlight php hljs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="hljs-keyword">if</span> (<span class="hljs-keyword">isset</span>(<span class="hljs-keyword">$this</span>-&gt;prefixLengthsPsr4[$first])) &#123;</span><br><span class="line">            <span class="hljs-keyword">foreach</span> (<span class="hljs-keyword">$this</span>-&gt;prefixLengthsPsr4[$first] <span class="hljs-keyword">as</span> $prefix =&gt; $length) &#123;</span><br><span class="line">                <span class="hljs-keyword">if</span> (<span class="hljs-number">0</span> === strpos($class, $prefix)) &#123;</span><br><span class="line">                    <span class="hljs-keyword">foreach</span> (<span class="hljs-keyword">$this</span>-&gt;prefixDirsPsr4[$prefix] <span class="hljs-keyword">as</span> $dir) &#123;</span><br><span class="line">                        <span class="hljs-keyword">if</span> (file_exists($file = $dir . DIRECTORY_SEPARATOR . substr($logicalPathPsr4, $length))) &#123;</span><br><span class="line">                            <span class="hljs-keyword">return</span> $file;</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br></pre></td></tr></table></figure>
+
+<p>想要加类的目录，那么就要设置useIncludePath，可以在bootstrap/autoload.php加上</p>
+<figure class="highlight php hljs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="hljs-comment">//加载类</span></span><br><span class="line">$loader = <span class="hljs-keyword">require</span> LARAVEL_PATH . <span class="hljs-string">'/vendor/autoload.php'</span>;</span><br><span class="line">$loader-&gt;setUseIncludePath($path);</span><br></pre></td></tr></table></figure>
+
+
+        </div>
+        
+        
+        
+    </div>
+</div>
+
+
+
+<div class="card">
+    <div class="card-content">
+        <h3 class="menu-label has-text-centered">喜欢这篇文章？打赏一下作者吧</h3>
+        <div class="buttons is-centered">
+            
+                
+<a class="button is-info donate">
+    <span class="icon is-small">
+        <i class="fab fa-alipay"></i>
+    </span>
+    <span>支付宝</span>
+    <div class="qrcode"><img src="/images/qrcode_alipay.jpg" alt="支付宝"></div>
+</a>
+
+                
+                
+<a class="button is-success donate">
+    <span class="icon is-small">
+        <i class="fab fa-weixin"></i>
+    </span>
+    <span>微信</span>
+    <div class="qrcode"><img src="/images/qrcode_weixin.jpg" alt="微信"></div>
+</a>
+
+                
+        </div>
+    </div>
+</div>
+
+
+
+<div class="card card-transparent">
+    <div class="level post-navigation is-flex-wrap is-mobile">
+        
+        <div class="level-start">
+            <a class="level level-item has-link-grey  article-nav-prev" href="/2016/02/03/laravel-config/">
+                <i class="level-item fas fa-chevron-left"></i>
+                <span class="level-item">Laravel配置文件分析</span>
+            </a>
+        </div>
+        
+        
+        <div class="level-end">
+            <a class="level level-item has-link-grey  article-nav-next" href="/2016/02/01/facede/">
+                <span class="level-item">Facade类分析</span>
+                <i class="level-item fas fa-chevron-right"></i>
+            </a>
+        </div>
+        
+    </div>
+</div>
+
+
+
+<div class="card">
+    <div class="card-content">
+        <h3 class="title is-5 has-text-weight-normal">评论</h3>
+        
+<div id="valine-thread" class="content"></div>
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src='//unpkg.com/valine/dist/Valine.min.js'></script>
+<script>
+    new Valine({
+        el: '#valine-thread' ,
+        notify: false,
+        verify: false,
+        app_id: 'Dn599N62352itx4P4dkSTrhL-gzGzoHsz',
+        app_key: 'YPHoVDgb0U2mYUkBNEbmfh8u',
+        placeholder: 'Say something...'
+    });
+</script>
+
+    </div>
+</div>
+</div>
+                
+
+
+
+
+<div class="column is-3-tablet is-3-desktop is-3-widescreen  has-order-1 column-left ">
+    
+        
+<div class="card widget">
+    <div class="card-content">
+        <nav class="level">
+            <div class="level-item has-text-centered" style="flex-shrink: 1">
+                <div>
+                    
+                        <img class="image is-128x128 has-mb-6" src="/images/avatar.png" alt="Jacho Huang">
+                    
+                    
+                    <p class="is-size-4 is-block">
+                        Jacho Huang
+                    </p>
+                    
+                    
+                    <p class="is-size-6 is-block">
+                        DreamCoder
+                    </p>
+                    
+                    
+                    <p class="is-size-6 is-flex is-flex-center has-text-grey">
+                        <i class="fas fa-map-marker-alt has-mr-7"></i>
+                        <span>China GuangDong GuangZhou</span>
+                    </p>
+                    
+                </div>
+            </div>
+        </nav>
+        <nav class="level is-mobile">
+            <div class="level-item has-text-centered is-marginless">
+                <div>
+                    <p class="heading">
+                        文章
+                    </p>
+                    <p class="title has-text-weight-normal">
+                        12
+                    </p>
+                </div>
+            </div>
+            <div class="level-item has-text-centered is-marginless">
+                <div>
+                    <p class="heading">
+                        分类
+                    </p>
+                    <p class="title has-text-weight-normal">
+                        1
+                    </p>
+                </div>
+            </div>
+            <div class="level-item has-text-centered is-marginless">
+                <div>
+                    <p class="heading">
+                        标签
+                    </p>
+                    <p class="title has-text-weight-normal">
+                        4
+                    </p>
+                </div>
+            </div>
+        </nav>
+        <div class="level">
+            <a class="level-item button is-link is-rounded" href="https://github.com/jachohx" target="_blank">
+                关注我</a>
+        </div>
+        
+        
+        <div class="level is-mobile">
+            
+            <a class="level-item button is-white is-marginless" target="_blank"
+                title="Github" href="https://github.com/jachohx">
+                
+                <i class="fab fa-github"></i>
+                
+            </a>
+            
+            <a class="level-item button is-white is-marginless" target="_blank"
+                title="Facebook" href="https://facebook.com/jachohx">
+                
+                <i class="fab fa-facebook"></i>
+                
+            </a>
+            
+            <a class="level-item button is-white is-marginless" target="_blank"
+                title="Twitter" href="https://twitter.com/jachohx">
+                
+                <i class="fab fa-twitter"></i>
+                
+            </a>
+            
+            <a class="level-item button is-white is-marginless" target="_blank"
+                title="RSS" href="/atom.xml">
+                
+                <i class="fas fa-rss"></i>
+                
+            </a>
+            
+        </div>
+        
+    </div>
+</div>
+    
+        
+<div class="card widget" id="toc">
+    <div class="card-content">
+        <div class="menu">
+            <h3 class="menu-label">
+                目录
+            </h3>
+            
+        </div>
+    </div>
+</div>
+
+    
+        
+<div class="card widget">
+    <div class="card-content">
+        <div class="menu">
+            <h3 class="menu-label">
+                分类
+            </h3>
+            <ul class="menu-list">
+            <li>
+        <a class="level is-marginless" href="/categories/tech/">
+            <span class="level-start">
+                <span class="level-item">tech</span>
+            </span>
+            <span class="level-end">
+                <span class="level-item tag">11</span>
+            </span>
+        </a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+    
+        <div class="card widget">
+    <div class="card-content">
+        <div class="menu">
+            <h3 class="menu-label">
+                标签
+            </h3>
+            <div class="field is-grouped is-grouped-multiline">
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/eclipse/">
+                        <span class="tag">eclipse</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/java/">
+                        <span class="tag">java</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/shell/">
+                        <span class="tag">shell</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+                <div class="control">
+                    <a class="tags has-addons" href="/tags/tech/">
+                        <span class="tag">tech</span>
+                        <span class="tag is-grey">1</span>
+                    </a>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+</div>
+    
+    
+        <div class="column-right-shadow is-hidden-widescreen ">
+        
+        </div>
+    
+</div>
+
+
+                
+
+            </div>
+        </div>
+    </section>
+    <footer class="footer">
+    <div class="container">
+        <div class="level">
+            <div class="level-start has-text-centered-mobile">
+                <a class="footer-logo is-block has-mb-6" href="/">
+                
+                    <img src="/images/logo.png" alt="Laravel路由分析" height="28">
+                
+                </a>
+                <p class="is-size-7">
+                &copy; 2019 Jacho&nbsp;
+                Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> & <a
+                        href="https://github.com/ppoffice/hexo-theme-icarus" target="_blank">Icarus</a>
+                
+                </p>
+            </div>
+            <div class="level-end">
+            
+                <div class="field has-addons is-flex-center-mobile has-mt-5-mobile is-flex-wrap is-flex-middle">
+                
+                
+                <p class="control">
+                    <a class="button is-white is-large" target="_blank" title="Creative Commons" href="https://creativecommons.org/">
+                        
+                        <i class="fab fa-creative-commons"></i>
+                        
+                    </a>
+                </p>
+                
+                <p class="control">
+                    <a class="button is-white is-large" target="_blank" title="Attribution 4.0 International" href="https://creativecommons.org/licenses/by/4.0/">
+                        
+                        <i class="fab fa-creative-commons-by"></i>
+                        
+                    </a>
+                </p>
+                
+                <p class="control">
+                    <a class="button is-white is-large" target="_blank" title="Download on GitHub" href="https://github.com/ppoffice/hexo-theme-icarus">
+                        
+                        <i class="fab fa-github"></i>
+                        
+                    </a>
+                </p>
+                
+                </div>
+            
+            </div>
+        </div>
+    </div>
+</footer>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/moment@2.22.2/min/moment-with-locales.min.js"></script>
+<script>moment.locale("zh-CN");</script>
+
+<script>
+var IcarusThemeSettings = {
+    article: {
+        highlight: {
+            clipboard: true,
+            fold: 'unfolded'
+        }
+    }
+};
+</script>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/clipboard@2.0.4/dist/clipboard.min.js" defer></script>
+
+
+
+    
+    
+    
+    <script src="/js/animation.js"></script>
+    
+
+    
+    
+    
+    <script src="https://cdn.jsdelivr.net/npm/lightgallery@1.6.8/dist/js/lightgallery.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/js/jquery.justifiedGallery.min.js" defer></script>
+    <script src="/js/gallery.js" defer></script>
+    
+
+    
+    
+
+<div id="outdated">
+    <h6>Your browser is out-of-date!</h6>
+    <p>Update your browser to view this website correctly. <a id="btnUpdateBrowser" href="http://outdatedbrowser.com/">Update
+            my browser now </a></p>
+    <p class="last"><a href="#" id="btnCloseUpdateBrowser" title="Close">&times;</a></p>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/outdatedbrowser@1.1.5/outdatedbrowser/outdatedbrowser.min.js" defer></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        outdatedBrowser({
+            bgColor: '#f25648',
+            color: '#ffffff',
+            lowerThan: 'flex'
+        });
+    });
+</script>
+
+
+    
+    
+<script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.5/unpacked/MathJax.js?config=TeX-MML-AM_CHTML" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    MathJax.Hub.Config({
+        'HTML-CSS': {
+            matchFontHeight: false
+        },
+        SVG: {
+            matchFontHeight: false
+        },
+        CommonHTML: {
+            matchFontHeight: false
+        },
+        tex2jax: {
+            inlineMath: [
+                ['$','$'],
+                ['\\(','\\)']
+            ]
+        }
+    });
+});
+</script>
+
+    
+    
+
+<a id="back-to-top" title="回到顶端" href="javascript:;">
+    <i class="fas fa-chevron-up"></i>
+</a>
+<script src="/js/back-to-top.js" defer></script>
+
+
+    
+    
+
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+
+
+<script src="/js/main.js" defer></script>
+
+    
+    <div class="searchbox ins-search">
+    <div class="searchbox-container ins-search-container">
+        <div class="searchbox-input-wrapper">
+            <input type="text" class="searchbox-input ins-search-input" placeholder="想要查找什么..." />
+            <span class="searchbox-close ins-close ins-selectable"><i class="fa fa-times-circle"></i></span>
+        </div>
+        <div class="searchbox-result-wrapper ins-section-wrapper">
+            <div class="ins-section-container"></div>
+        </div>
+    </div>
+</div>
+<script>
+    (function (window) {
+        var INSIGHT_CONFIG = {
+            TRANSLATION: {
+                POSTS: '文章',
+                PAGES: '页面',
+                CATEGORIES: '分类',
+                TAGS: '标签',
+                UNTITLED: '(无标题)',
+            },
+            CONTENT_URL: '/content.json',
+        };
+        window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+    })(window);
+</script>
+<script src="/js/insight.js" defer></script>
+<link rel="stylesheet" href="/css/search.css">
+<link rel="stylesheet" href="/css/insight.css">
+    
+</body>
+</html>
